@@ -1,0 +1,33 @@
+name: lozcam_movil
+description: App móvil oficial de Grupo Lozcam — Sistema de Gestión de Obras
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.6
+  # Conexión a la MISMA base de datos Supabase que la web
+  supabase_flutter: ^2.5.6
+  # Memoria interna del dispositivo: usuarios locales + sesión persistente
+  shared_preferences: ^2.2.0
+  # GPS del dispositivo para validar la asistencia por ubicación
+  geolocator: ^13.0.0
+  # Mapa integrado dentro de la app (OpenStreetMap, sin API key)
+  flutter_map: ^7.0.2
+  latlong2: ^0.9.1
+  # Geocodificación de direcciones (Nominatim / OpenStreetMap)
+  http: ^1.2.0
+  # Foto de evidencia (cámara/galería). Se guarda local; subirá a Storage al integrar.
+  image_picker: ^1.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
