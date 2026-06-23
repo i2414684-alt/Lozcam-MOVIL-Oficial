@@ -151,7 +151,7 @@ class _TutorialDialogState extends State<_TutorialDialog> {
   }
 
   Widget _vistaSlide(_Slide s, Color color) {
-    final tono = color.withOpacity(0.12);
+    final tono = color.withValues(alpha:0.12);
     return Column(mainAxisAlignment: MainAxisAlignment.center, children: [
       // El ingeniero
       Container(

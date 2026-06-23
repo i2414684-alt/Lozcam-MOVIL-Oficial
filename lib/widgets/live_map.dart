@@ -189,8 +189,8 @@ class _LiveMapState extends State<LiveMap> {
                 point: LatLng(widget.obraLat!, widget.obraLng!),
                 radius: widget.radioMetros.toDouble(),
                 useRadiusInMeter: true,
-                color: AppColors.primary.withOpacity(0.12),
-                borderColor: AppColors.primary.withOpacity(0.6),
+                color: AppColors.primary.withValues(alpha:0.12),
+                borderColor: AppColors.primary.withValues(alpha:0.6),
                 borderStrokeWidth: 1.5,
               ),
             ]),
@@ -231,7 +231,7 @@ class _LiveMapState extends State<LiveMap> {
       ),
       if (_cargando)
         Container(
-          color: Colors.black.withOpacity(0.05),
+          color: Colors.black.withValues(alpha:0.05),
           alignment: Alignment.center,
           child: const SizedBox(
               width: 26,
@@ -248,7 +248,7 @@ class _LiveMapState extends State<LiveMap> {
         shape: BoxShape.circle,
         border: Border.all(color: Colors.white, width: 3),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.25), blurRadius: 4),
+          BoxShadow(color: Colors.black.withValues(alpha:0.25), blurRadius: 4),
         ],
       ),
     );
@@ -263,7 +263,7 @@ class _LiveMapState extends State<LiveMap> {
       decoration: BoxDecoration(
           color: bg,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: tone.withOpacity(0.4), width: 0.5)),
+          border: Border.all(color: tone.withValues(alpha:0.4), width: 0.5)),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         Icon(dentro ? Icons.check_circle : Icons.cancel, size: 14, color: tone),
         const SizedBox(width: 5),

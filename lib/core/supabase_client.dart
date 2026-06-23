@@ -9,7 +9,8 @@ bool supabaseListo = false;
 Future<void> initSupabase() async {
   if (!credencialesListas) return;
   try {
-    await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
+    await Supabase.initialize(
+        url: supabaseUrl, publishableKey: supabaseAnonKey);
     supabaseListo = true;
   } catch (_) {
     supabaseListo = false;

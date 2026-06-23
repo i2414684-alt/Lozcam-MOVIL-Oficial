@@ -141,7 +141,7 @@ class _EmpleadoTareasState extends State<EmpleadoTareas> {
 
   Widget _acciones(TareaAsignada t) {
     if (t.estado == 'completada') {
-      return Row(children: const [
+      return const Row(children: [
         Icon(Icons.check_circle, size: 16, color: AppColors.success),
         SizedBox(width: 4),
         Text('Completada',

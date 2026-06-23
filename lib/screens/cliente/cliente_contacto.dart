@@ -72,8 +72,8 @@ class ClienteContacto extends StatelessWidget {
                   ),
             ]),
           ),
-          AppCard(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: const [
+          const AppCard(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               CardTitle('Oficina Lozcam'),
               IconRow(
                   icon: Icons.call_outlined,

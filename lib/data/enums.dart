@@ -6,6 +6,7 @@
 ///  móvil y web hablen exactamente lo mismo. Cuando se integre la nube, no hay
 ///  discrepancias de estados/tipos. Cambiar aquí = cambiar en un solo lugar.
 /// ============================================================================
+library;
 
 /// Estados de obra (== ESTADOS_OBRA del web).
 const estadosObra = <String, String>{

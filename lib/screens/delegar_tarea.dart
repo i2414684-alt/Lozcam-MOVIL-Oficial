@@ -261,7 +261,7 @@ class _DelegarTareaState extends State<DelegarTarea> {
     if (_cargandoPersonas) {
       return InputDecorator(
         decoration: _dec(''),
-        child: Row(children: const [
+        child: const Row(children: [
           SizedBox(
               width: 16,
               height: 16,

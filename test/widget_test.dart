@@ -1,5 +1,4 @@
 // Prueba de humo: la app arranca y muestra la pantalla de inicio de sesión.
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:lozcam_movil/main.dart';

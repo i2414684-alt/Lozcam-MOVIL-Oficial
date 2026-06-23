@@ -173,7 +173,7 @@ class PanelHeader extends StatelessWidget {
               height: 38,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
+                  color: Colors.white.withValues(alpha:0.2),
                   borderRadius: BorderRadius.circular(10)),
               child: Icon(icon, color: Colors.white, size: 20),
             ),
@@ -195,7 +195,7 @@ class PanelHeader extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                             fontSize: 11,
-                            color: Colors.white.withOpacity(0.78))),
+                            color: Colors.white.withValues(alpha:0.78))),
                   ]),
             ),
             if (onLogout != null)
@@ -232,14 +232,14 @@ class MapPlaceholder extends StatelessWidget {
             decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                    color: AppColors.primary.withOpacity(0.25), width: 2))),
+                    color: AppColors.primary.withValues(alpha:0.25), width: 2))),
         Container(
             width: 90,
             height: 90,
             decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                    color: AppColors.primary.withOpacity(0.4), width: 2))),
+                    color: AppColors.primary.withValues(alpha:0.4), width: 2))),
         const Icon(Icons.location_on, size: 34, color: AppColors.danger),
         Positioned(
           bottom: 6,

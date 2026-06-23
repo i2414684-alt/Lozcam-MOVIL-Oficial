@@ -131,10 +131,10 @@ class _EmpleadoMarcarState extends State<EmpleadoMarcar> {
   }
 
   Widget _avisoSinPermiso() {
-    return Center(
+    return const Center(
       child: Padding(
-        padding: const EdgeInsets.all(28),
-        child: Column(mainAxisSize: MainAxisSize.min, children: const [
+        padding: EdgeInsets.all(28),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
           Icon(Icons.info_outline, size: 40, color: AppColors.textMuted),
           SizedBox(height: 12),
           Text('Tu rol no registra asistencia de campo',
@@ -260,7 +260,7 @@ class _EmpleadoMarcarState extends State<EmpleadoMarcar> {
                   fontWeight: FontWeight.w600)),
           style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.success,
-              disabledBackgroundColor: AppColors.success.withOpacity(0.4),
+              disabledBackgroundColor: AppColors.success.withValues(alpha:0.4),
               elevation: 0,
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(

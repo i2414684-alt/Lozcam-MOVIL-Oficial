@@ -226,7 +226,7 @@ class _EmpleadoInformeState extends State<EmpleadoInforme> {
     if (_esCampo) {
       _Label label = const _Label('Obra');
       if (_obras.isEmpty) {
-        return Column(crossAxisAlignment: CrossAxisAlignment.start, children: const [
+        return const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           _Label('Obra'),
           Text('Sin obra asignada (se guardará como "General").',
               style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
