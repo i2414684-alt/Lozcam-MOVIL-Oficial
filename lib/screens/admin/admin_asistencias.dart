@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import '../../theme/colors.dart';
 import '../../widgets/common.dart';
 import '../../models/models.dart';
-import '../../core/local_store.dart';
 import '../../core/asistencia_service.dart';
 import '../../data/obras_repository.dart';
 import '../../data/asignaciones_repository.dart';
 import '../../data/tareas_repository.dart';
 
 /// Monitor de gerencia (solo lectura): asistencia y tareas por área.
+/// Producción: lee obras/asignaciones/asistencias de la BD; sin nube, local.
 class AdminAsistencias extends StatefulWidget {
   const AdminAsistencias({super.key});
   @override
@@ -16,20 +16,41 @@ class AdminAsistencias extends StatefulWidget {
 }
 
 class _AdminAsistenciasState extends State<AdminAsistencias> {
-  String get _hoy => DateTime.now().toIso8601String().substring(0, 10);
+  List<Obra> _obras = [];
+  Map<int, int> _conteo = {};
+  List<Map<String, dynamic>> _asistHoy = [];
+  bool _cargando = true;
 
-  Future<void> _refrescar() async => setState(() {});
+  @override
+  void initState() {
+    super.initState();
+    _cargar();
+  }
+
+  Future<void> _cargar() async {
+    final obras = await cargarObras();
+    final conteo = await conteoAsignadosPorObra();
+    final asist = await asistenciasHoyTodas();
+    if (!mounted) return;
+    setState(() {
+      _obras = obras;
+      _conteo = conteo;
+      _asistHoy = asist;
+      _cargando = false;
+    });
+  }
+
+  int _presentesEn(int obraId) => _asistHoy
+      .where((r) => (r['obra_id'] as num?)?.toInt() == obraId)
+      .map((r) => r['perfil_id'])
+      .toSet()
+      .length;
 
   @override
   Widget build(BuildContext context) {
-    final areas = areasLocales();
-    final asignaciones = LocalStore.asignaciones();
-    final trabajadores =
-        asignaciones.map((a) => a['perfil_id'] as String).toSet().length;
     final tareas = todasLasTareas();
     final abiertas = tareas.where((t) => t.estado != 'completada').length;
-    final registros = registrosAsistenciaLocales();
-    final marcasHoy = registros.where((r) => r['fecha'] == _hoy).toList();
+    final presentesHoy = _asistHoy.map((r) => r['perfil_id']).toSet().length;
 
     return Column(children: [
       const PanelHeader(
@@ -39,26 +60,31 @@ class _AdminAsistenciasState extends State<AdminAsistencias> {
           icon: Icons.insights_outlined),
       Expanded(
         child: RefreshIndicator(
-          onRefresh: _refrescar,
-          child: ListView(padding: const EdgeInsets.all(12), children: [
-            Row(children: [
-              StatCard('${areas.length}', 'Áreas', color: AppColors.admin),
-              const SizedBox(width: 8),
-              StatCard('$trabajadores', 'Asignados',
-                  color: AppColors.empleado),
-            ]),
-            const SizedBox(height: 8),
-            Row(children: [
-              StatCard('$abiertas', 'Tareas abiertas',
-                  color: AppColors.warning),
-              const SizedBox(width: 8),
-              StatCard('${marcasHoy.length}', 'Marcas hoy',
-                  color: AppColors.success),
-            ]),
-            const SizedBox(height: 10),
-            _tareasPorEstado(tareas),
-            _porArea(areas, registros),
-          ]),
+          onRefresh: _cargar,
+          child: ListView(
+            padding: const EdgeInsets.all(12),
+            physics: const AlwaysScrollableScrollPhysics(),
+            children: [
+              Row(children: [
+                StatCard('${_obras.length}', 'Obras', color: AppColors.admin),
+                const SizedBox(width: 8),
+                StatCard('$abiertas', 'Tareas abiertas',
+                    color: AppColors.warning),
+                const SizedBox(width: 8),
+                StatCard('$presentesHoy', 'Presentes hoy',
+                    color: AppColors.success),
+              ]),
+              const SizedBox(height: 10),
+              _tareasPorEstado(tareas),
+              if (_cargando)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 30),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else
+                _porArea(),
+            ],
+          ),
         ),
       ),
     ]);
@@ -96,34 +122,27 @@ class _AdminAsistenciasState extends State<AdminAsistencias> {
     );
   }
 
-  Widget _porArea(List<Obra> areas, List<Map<String, dynamic>> registros) {
+  Widget _porArea() {
     return AppCard(
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const CardTitle('Por área'),
-        if (areas.isEmpty)
-          const Text('Crea áreas en la pestaña "Áreas".',
+        const CardTitle('Por obra'),
+        if (_obras.isEmpty)
+          const Text('No hay obras activas.',
               style: TextStyle(fontSize: 12, color: AppColors.textMuted))
         else
-          for (final a in areas) _filaArea(a, registros),
+          for (final o in _obras) _filaArea(o),
       ]),
     );
   }
 
-  Widget _filaArea(Obra a, List<Map<String, dynamic>> registros) {
-    final asignados = contarTrabajadoresArea(a.id);
-    final presentesHoy = registros
-        .where((r) =>
-            (r['obra_id'] as num?)?.toInt() == a.id &&
-            r['fecha'] == _hoy &&
-            r['tipo'] == 'entrada')
-        .map((r) => r['perfil_id'])
-        .toSet()
-        .length;
+  Widget _filaArea(Obra o) {
+    final asignados = _conteo[o.id] ?? 0;
+    final presentes = _presentesEn(o.id);
     final tone = asignados == 0
         ? 'gray'
-        : presentesHoy >= asignados
+        : presentes >= asignados
             ? 'green'
-            : presentesHoy == 0
+            : presentes == 0
                 ? 'red'
                 : 'amber';
     return Padding(
@@ -131,7 +150,7 @@ class _AdminAsistenciasState extends State<AdminAsistencias> {
       child: Row(children: [
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(a.nombre,
+            Text(o.nombre,
                 style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
@@ -141,7 +160,7 @@ class _AdminAsistenciasState extends State<AdminAsistencias> {
                     const TextStyle(fontSize: 11, color: AppColors.textMuted)),
           ]),
         ),
-        AppBadge('$presentesHoy/$asignados hoy', tone: tone),
+        AppBadge('$presentes/$asignados hoy', tone: tone),
       ]),
     );
   }

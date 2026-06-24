@@ -1,31 +1,63 @@
+import '../core/auth_service.dart';
 import '../core/local_store.dart';
 import '../core/supabase_client.dart';
 import '../models/models.dart';
 import 'mock_data.dart';
 
-/// Carga las obras/áreas donde el trabajador puede marcar asistencia.
-/// Prioridad:
-///   1. Supabase listo  -> tabla `obras` (id, nombre, lat/lng, radio).
-///   2. Áreas definidas por el gerente en memoria interna.
-///   3. Obras de ejemplo (para que la app no quede vacía en beta).
+/// Carga las obras donde el trabajador puede marcar asistencia.
+///
+/// IMPORTANTE: en producción (Supabase listo) se devuelve SOLO lo que diga la
+/// BD —con las coordenadas reales (latitud, longitud, radio_metros)—. NUNCA se
+/// cae a datos locales/semilla, para que el mapa y la distancia jamás muestren
+/// coordenadas viejas/equivocadas. Si la BD viene vacía (p. ej. el RLS no deja
+/// leer `obras` a ese rol), se devuelve vacío y la pantalla mostrará "no hay
+/// obras" en vez de coordenadas incorrectas.
+///
+/// Solo SIN nube (offline/beta) se usan las áreas locales o la semilla.
 Future<List<Obra>> cargarObras() async {
   if (supabaseListo) {
     try {
       final rows = await supabase
           .from('obras')
-          .select('id, nombre, latitud, longitud, radio_metros, estado, activo')
+          .select(
+              'id, nombre, latitud, longitud, radio_metros, estado, activo, direccion')
           .eq('activo', true);
-      final lista = (rows as List)
+      return (rows as List)
           .map((r) => _obraDesdeRow(Map<String, dynamic>.from(r as Map)))
           .toList();
-      if (lista.isNotEmpty) return lista;
     } catch (_) {
-      // cae a las áreas locales / semilla
+      return []; // en nube, ante error NO mostramos datos locales/stale
     }
   }
   final locales = areasLocales();
   if (locales.isNotEmpty) return locales;
   return obras;
+}
+
+/// Obra del cliente actual (por `cliente_id` de su perfil).
+/// Producción: lee de la tabla `obras`; sin nube: primera área local.
+Future<Obra?> obraDelCliente() async {
+  if (supabaseListo) {
+    final cid = AuthService.instance.session?.clienteId;
+    if (cid == null) return null;
+    try {
+      final rows = await supabase
+          .from('obras')
+          .select(
+              'id, nombre, latitud, longitud, radio_metros, estado, activo, direccion')
+          .eq('cliente_id', cid)
+          .eq('activo', true)
+          .limit(1);
+      final lista = (rows as List)
+          .map((r) => _obraDesdeRow(Map<String, dynamic>.from(r as Map)))
+          .toList();
+      return lista.isNotEmpty ? lista.first : null;
+    } catch (_) {
+      return null;
+    }
+  }
+  final locales = areasLocales();
+  return locales.isNotEmpty ? locales.first : null;
 }
 
 /// Áreas de trabajo definidas por el gerente (memoria interna).
@@ -76,7 +108,7 @@ Obra _obraDesdeRow(Map<String, dynamic> r) => Obra(
       (r['estado'] ?? 'en_ejecucion') as String,
       0,
       '',
-      '',
+      (r['direccion'] ?? '') as String,
       (r['latitud'] as num?)?.toDouble() ?? 0,
       (r['longitud'] as num?)?.toDouble() ?? 0,
       'blue',

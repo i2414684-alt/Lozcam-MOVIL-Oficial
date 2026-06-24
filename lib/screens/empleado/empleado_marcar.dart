@@ -109,23 +109,29 @@ class _EmpleadoMarcarState extends State<EmpleadoMarcar> {
       Expanded(
         child: !puedeMarcar
             ? _avisoSinPermiso()
-            : ListView(padding: const EdgeInsets.all(12), children: [
-                _selectorObra(),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: LiveMap(
-                    obraLat: _obra?.lat,
-                    obraLng: _obra?.lng,
-                    radioMetros: _obra?.radioMetros ?? 200,
-                    obraNombre: _obra?.nombre,
-                    height: 240,
-                    onPosicion: (p) => _ultimaPos = p,
-                  ),
-                ),
-                if (_resultado != null) _bannerResultado(_resultado!),
-                _botonesMarcar(),
-                _recientes(),
-              ]),
+            : RefreshIndicator(
+                onRefresh: _cargarObras, // recarga coords frescas de la BD
+                child: ListView(
+                    padding: const EdgeInsets.all(12),
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: [
+                      _selectorObra(),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: LiveMap(
+                          obraLat: _obra?.lat,
+                          obraLng: _obra?.lng,
+                          radioMetros: _obra?.radioMetros ?? 200,
+                          obraNombre: _obra?.nombre,
+                          height: 240,
+                          onPosicion: (p) => _ultimaPos = p,
+                        ),
+                      ),
+                      if (_resultado != null) _bannerResultado(_resultado!),
+                      _botonesMarcar(),
+                      _recientes(),
+                    ]),
+              ),
       ),
     ]);
   }

@@ -3,8 +3,8 @@ import '../../theme/colors.dart';
 import '../../widgets/common.dart';
 import '../../core/asistencia_service.dart';
 
-/// Historial de asistencia del trabajador (solo memoria interna, sin red).
-/// Agrupa los registros por día y muestra entrada/salida y la obra.
+/// Historial de asistencia del trabajador, agrupado por día.
+/// En producción lee la tabla `asistencias`; sin nube, la memoria interna.
 class EmpleadoInasistencias extends StatefulWidget {
   const EmpleadoInasistencias({super.key});
   @override
@@ -12,109 +12,110 @@ class EmpleadoInasistencias extends StatefulWidget {
 }
 
 class _EmpleadoInasistenciasState extends State<EmpleadoInasistencias> {
-  Future<void> _refrescar() async => setState(() {});
+  List<Map<String, dynamic>> _dias = [];
+  bool _cargando = true;
 
-  String _hora(String? iso) {
-    if (iso == null) return '—';
-    final d = DateTime.tryParse(iso);
-    if (d == null) return '—';
-    String two(int n) => n.toString().padLeft(2, '0');
-    return '${two(d.hour)}:${two(d.minute)}';
+  @override
+  void initState() {
+    super.initState();
+    _cargar();
   }
 
-  String _fechaCorta(String f) {
-    final p = f.split('-');
-    return p.length == 3 ? '${p[2]}/${p[1]}' : f;
+  Future<void> _cargar() async {
+    final d = await AsistenciaService.instance.resumen();
+    if (!mounted) return;
+    setState(() {
+      _dias = d;
+      _cargando = false;
+    });
+  }
+
+  String _hora(dynamic iso) {
+    if (iso == null) return '—';
+    final d = DateTime.tryParse(iso.toString());
+    if (d == null) return '—';
+    final l = d.toLocal();
+    String two(int n) => n.toString().padLeft(2, '0');
+    return '${two(l.hour)}:${two(l.minute)}';
+  }
+
+  String _fechaCorta(dynamic f) {
+    final p = f.toString().split('-');
+    return p.length == 3 ? '${p[2]}/${p[1]}' : f.toString();
   }
 
   @override
   Widget build(BuildContext context) {
-    final regs = AsistenciaService.instance.historialLocal();
-
-    // Agrupar por fecha (ya viene ordenado desc por hora).
-    final porFecha = <String, List<Map<String, dynamic>>>{};
-    for (final r in regs) {
-      porFecha.putIfAbsent(r['fecha'] as String, () => []).add(r);
-    }
-    final fechas = porFecha.keys.toList()..sort((a, b) => b.compareTo(a));
-
-    final entradas = regs.where((r) => r['tipo'] == 'entrada').length;
-    final salidas = regs.where((r) => r['tipo'] == 'salida').length;
+    final entradas = _dias.where((d) => d['hora_entrada'] != null).length;
+    final salidas = _dias.where((d) => d['hora_salida'] != null).length;
 
     return Column(children: [
       const PanelHeader(
           title: 'Mi asistencia',
-          subtitle: 'Historial registrado en este dispositivo',
+          subtitle: 'Historial de entradas y salidas',
           color: AppColors.empleado,
           icon: Icons.history),
       Expanded(
         child: RefreshIndicator(
-          onRefresh: _refrescar,
-          child: ListView(padding: const EdgeInsets.all(12), children: [
-            Row(children: [
-              StatCard('${fechas.length}', 'Días', color: AppColors.empleado),
-              const SizedBox(width: 8),
-              StatCard('$entradas', 'Entradas', color: AppColors.success),
-              const SizedBox(width: 8),
-              StatCard('$salidas', 'Salidas', color: AppColors.textSoft),
-            ]),
-            const SizedBox(height: 10),
-            if (fechas.isEmpty)
-              const AppCard(
-                child: IconRow(
-                    icon: Icons.fingerprint,
-                    iconColor: AppColors.textMuted,
-                    title: 'Aún no has marcado asistencia',
-                    subtitle: 'Tus marcas aparecerán aquí por día.'),
-              )
-            else
-              AppCard(
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const CardTitle('Registros por día'),
-                      for (final f in fechas) _filaDia(f, porFecha[f]!),
-                    ]),
-              ),
-          ]),
+          onRefresh: _cargar,
+          child: ListView(
+            padding: const EdgeInsets.all(12),
+            physics: const AlwaysScrollableScrollPhysics(),
+            children: [
+              Row(children: [
+                StatCard('${_dias.length}', 'Días', color: AppColors.empleado),
+                const SizedBox(width: 8),
+                StatCard('$entradas', 'Entradas', color: AppColors.success),
+                const SizedBox(width: 8),
+                StatCard('$salidas', 'Salidas', color: AppColors.textSoft),
+              ]),
+              const SizedBox(height: 10),
+              if (_cargando)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 40),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (_dias.isEmpty)
+                const AppCard(
+                  child: IconRow(
+                      icon: Icons.fingerprint,
+                      iconColor: AppColors.textMuted,
+                      title: 'Aún no has marcado asistencia',
+                      subtitle: 'Tus marcas aparecerán aquí por día.'),
+                )
+              else
+                AppCard(
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const CardTitle('Registros por día'),
+                        for (final d in _dias) _filaDia(d),
+                      ]),
+                ),
+            ],
+          ),
         ),
       ),
     ]);
   }
 
-  Widget _filaDia(String fecha, List<Map<String, dynamic>> items) {
-    Map<String, dynamic>? buscar(String tipo) {
-      for (final r in items) {
-        if (r['tipo'] == tipo) return r;
-      }
-      return null;
-    }
-
-    final entrada = buscar('entrada');
-    final salida = buscar('salida');
-    final obra =
-        (entrada ?? salida)?['obra_nombre']?.toString() ?? '';
-
+  Widget _filaDia(Map<String, dynamic> d) {
+    final obra = (d['obra_nombre'] ?? '').toString();
+    final salida = d['hora_salida'];
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 7),
       child: Row(children: [
-        Container(
-          width: 8,
-          height: 8,
-          decoration: const BoxDecoration(
-              color: AppColors.success, shape: BoxShape.circle),
-        ),
+        const Icon(Icons.check_circle, size: 16, color: AppColors.success),
         const SizedBox(width: 8),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('${_fechaCorta(fecha)} · $obra',
+            Text(obra.isEmpty ? _fechaCorta(d['fecha']) : '${_fechaCorta(d['fecha'])} · $obra',
                 style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                     color: AppColors.textDark)),
             Text(
-                'Entrada ${_hora(entrada?['hora'] as String?)}  ·  '
-                'Salida ${_hora(salida?['hora'] as String?)}',
+                'Entrada ${_hora(d['hora_entrada'])}  ·  Salida ${_hora(salida)}',
                 style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
           ]),
         ),

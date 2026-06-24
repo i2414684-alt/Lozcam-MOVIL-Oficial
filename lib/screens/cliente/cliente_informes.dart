@@ -4,11 +4,10 @@ import '../../theme/colors.dart';
 import '../../widgets/common.dart';
 import '../../models/models.dart';
 import '../../data/obras_repository.dart';
-import '../../data/informes_repository.dart';
+import '../../data/avance_repository.dart';
 
-/// Informes de avance que ve el cliente: los partes que reportan los
-/// trabajadores para SU obra (memoria interna, sin red). Cierra el ciclo
-/// trabajador → cliente.
+/// Informes de avance que ve el cliente: los avances de SU obra.
+/// Producción: tabla `avance_obra`; sin nube: partes locales.
 class ClienteInformes extends StatefulWidget {
   const ClienteInformes({super.key});
   @override
@@ -16,21 +15,38 @@ class ClienteInformes extends StatefulWidget {
 }
 
 class _ClienteInformesState extends State<ClienteInformes> {
-  Future<void> _refrescar() async => setState(() {});
+  Obra? _obra;
+  List<AvanceItem> _avances = [];
+  bool _cargando = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _cargar();
+  }
+
+  Future<void> _cargar() async {
+    final o = await obraDelCliente();
+    final av = o == null ? <AvanceItem>[] : await avancesDeObra(o.id);
+    if (!mounted) return;
+    setState(() {
+      _obra = o;
+      _avances = av;
+      _cargando = false;
+    });
+  }
 
   String _fecha(String iso) {
     final d = DateTime.tryParse(iso);
-    if (d == null) return '';
+    if (d == null) return iso;
     String two(int n) => n.toString().padLeft(2, '0');
-    return '${two(d.day)}/${two(d.month)} ${two(d.hour)}:${two(d.minute)}';
+    return '${two(d.day)}/${two(d.month)}';
   }
 
   @override
   Widget build(BuildContext context) {
-    final areas = areasLocales();
-    final Obra? obra = areas.isNotEmpty ? areas.first : null;
-    final avances = obra == null ? <InformeAvance>[] : informesDeObra(obra.id);
-    final ultimoPct = avances.isNotEmpty ? avances.first.pct : null;
+    final obra = _obra;
+    final ultimoPct = _avances.isNotEmpty ? _avances.first.pct : null;
 
     return Column(children: [
       const PanelHeader(
@@ -40,92 +56,117 @@ class _ClienteInformesState extends State<ClienteInformes> {
           icon: Icons.description_outlined),
       Expanded(
         child: RefreshIndicator(
-          onRefresh: _refrescar,
-          child: ListView(padding: const EdgeInsets.all(12), children: [
-            if (obra != null)
-              AppCard(
-                color: AppColors.greenBg,
-                borderColor: const Color(0xFF9FE1CB),
-                child: Row(children: [
-                  Expanded(
-                    child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(obra.nombre,
-                              style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.textDark)),
-                          Text('${avances.length} reporte(s)',
-                              style: const TextStyle(
-                                  fontSize: 11, color: AppColors.textSoft)),
-                        ]),
-                  ),
-                  if (ultimoPct != null)
-                    Column(children: [
-                      Text('$ultimoPct%',
-                          style: const TextStyle(
-                              fontSize: 26,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.cliente)),
-                      const Text('último',
-                          style: TextStyle(
-                              fontSize: 10, color: AppColors.textSoft)),
-                    ]),
-                ]),
-              ),
-            if (avances.isEmpty)
-              const AppCard(
-                child: IconRow(
-                    icon: Icons.description_outlined,
-                    iconColor: AppColors.textMuted,
-                    title: 'Aún no hay avances reportados',
-                    subtitle: 'Cuando el equipo reporte, aparecerá aquí.'),
-              )
-            else
-              for (final inf in avances) _tarjeta(inf),
-          ]),
+          onRefresh: _cargar,
+          child: ListView(
+            padding: const EdgeInsets.all(12),
+            physics: const AlwaysScrollableScrollPhysics(),
+            children: [
+              if (_cargando)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 40),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (obra == null)
+                const AppCard(
+                  child: IconRow(
+                      icon: Icons.business_outlined,
+                      iconColor: AppColors.textMuted,
+                      title: 'Aún no hay un proyecto asignado',
+                      subtitle: 'Aparecerá cuando el sistema lo registre.'),
+                )
+              else ...[
+                AppCard(
+                  color: AppColors.greenBg,
+                  borderColor: const Color(0xFF9FE1CB),
+                  child: Row(children: [
+                    Expanded(
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(obra.nombre,
+                                style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.textDark)),
+                            Text('${_avances.length} reporte(s)',
+                                style: const TextStyle(
+                                    fontSize: 11, color: AppColors.textSoft)),
+                          ]),
+                    ),
+                    if (ultimoPct != null)
+                      Column(children: [
+                        Text('$ultimoPct%',
+                            style: const TextStyle(
+                                fontSize: 26,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.cliente)),
+                        const Text('último',
+                            style: TextStyle(
+                                fontSize: 10, color: AppColors.textSoft)),
+                      ]),
+                  ]),
+                ),
+                if (_avances.isEmpty)
+                  const AppCard(
+                    child: IconRow(
+                        icon: Icons.description_outlined,
+                        iconColor: AppColors.textMuted,
+                        title: 'Aún no hay avances reportados',
+                        subtitle: 'Cuando el equipo reporte, aparecerá aquí.'),
+                  )
+                else
+                  for (final a in _avances) _tarjeta(a),
+              ],
+            ],
+          ),
         ),
       ),
     ]);
   }
 
-  Widget _tarjeta(InformeAvance inf) {
-    final tieneFoto =
-        inf.fotoPath != null && File(inf.fotoPath!).existsSync();
+  Widget _tarjeta(AvanceItem a) {
+    final tieneLocal =
+        a.fotoPath != null && File(a.fotoPath!).existsSync();
+    final tieneUrl = a.fotoUrl != null && a.fotoUrl!.isNotEmpty;
     return AppCard(
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(inf.perfilNombre.isEmpty ? 'Equipo' : inf.perfilNombre,
+              Text(a.autor,
                   style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                       color: AppColors.textDark)),
-              Text(_fecha(inf.fecha),
+              Text(_fecha(a.fecha),
                   style: const TextStyle(
                       fontSize: 11, color: AppColors.textMuted)),
             ]),
           ),
-          AppBadge('${inf.pct}%',
-              tone: inf.pct >= 60
+          AppBadge('${a.pct}%',
+              tone: a.pct >= 60
                   ? 'green'
-                  : inf.pct >= 30
+                  : a.pct >= 30
                       ? 'amber'
                       : 'red'),
         ]),
-        const SizedBox(height: 6),
-        Text(inf.texto,
-            style: const TextStyle(
-                fontSize: 12, color: AppColors.textSoft, height: 1.4)),
-        ProgressBar(inf.pct),
-        if (tieneFoto) ...[
+        if (a.texto.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Text(a.texto,
+              style: const TextStyle(
+                  fontSize: 12, color: AppColors.textSoft, height: 1.4)),
+        ],
+        ProgressBar(a.pct),
+        if (tieneUrl || tieneLocal) ...[
           const SizedBox(height: 8),
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
-            child: Image.file(File(inf.fotoPath!),
-                width: double.infinity, height: 160, fit: BoxFit.cover),
+            child: tieneUrl
+                ? Image.network(a.fotoUrl!,
+                    width: double.infinity, height: 160, fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const SizedBox.shrink())
+                : Image.file(File(a.fotoPath!),
+                    width: double.infinity, height: 160, fit: BoxFit.cover),
           ),
         ],
       ]),

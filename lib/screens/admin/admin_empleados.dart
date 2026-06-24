@@ -1,13 +1,35 @@
 import 'package:flutter/material.dart';
 import '../../theme/colors.dart';
 import '../../widgets/common.dart';
-import '../../core/local_store.dart';
 import '../../data/roles.dart';
-import '../../data/asignaciones_repository.dart';
+import '../../data/personas_repository.dart';
 
-/// Equipo y jerarquía: personal real (memoria interna) agrupado por nivel.
-class AdminEmpleados extends StatelessWidget {
+/// Equipo y jerarquía: personal real agrupado por nivel.
+/// Producción: lee `profiles`; sin nube: usuarios de la memoria interna.
+class AdminEmpleados extends StatefulWidget {
   const AdminEmpleados({super.key});
+  @override
+  State<AdminEmpleados> createState() => _AdminEmpleadosState();
+}
+
+class _AdminEmpleadosState extends State<AdminEmpleados> {
+  List<Persona> _personal = [];
+  bool _cargando = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _cargar();
+  }
+
+  Future<void> _cargar() async {
+    final p = await todoElPersonal();
+    if (!mounted) return;
+    setState(() {
+      _personal = p;
+      _cargando = false;
+    });
+  }
 
   String _iniciales(String nombre) {
     final p = nombre.trim().split(RegExp(r'\s+'));
@@ -18,27 +40,23 @@ class AdminEmpleados extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final usuarios = [...LocalStore.usuarios()];
-    usuarios.sort((a, b) {
-      final na = rolPorClave('${a['rol']}')?.nivel ?? 4;
-      final nb = rolPorClave('${b['rol']}')?.nivel ?? 4;
-      if (na != nb) return na.compareTo(nb);
-      return '${a['nombre']}'.compareTo('${b['nombre']}');
-    });
+    final lista = [..._personal]..sort((a, b) {
+        final na = rolPorClave(a.rol)?.nivel ?? 4;
+        final nb = rolPorClave(b.rol)?.nivel ?? 4;
+        if (na != nb) return na.compareTo(nb);
+        return a.nombre.compareTo(b.nombre);
+      });
 
-    // Agrupar por etiqueta de nivel, preservando el orden jerárquico.
     final orden = <String>[];
-    final grupos = <String, List<Map<String, dynamic>>>{};
-    for (final u in usuarios) {
-      final label = etiquetaNivel(rolPorClave('${u['rol']}')?.nivel ?? 4);
+    final grupos = <String, List<Persona>>{};
+    for (final p in lista) {
+      final label = etiquetaNivel(rolPorClave(p.rol)?.nivel ?? 4);
       if (!grupos.containsKey(label)) {
         grupos[label] = [];
         orden.add(label);
       }
-      grupos[label]!.add(u);
+      grupos[label]!.add(p);
     }
-
-    final totalEmpresa = usuarios.where((u) => u['rol'] != 'cliente').length;
 
     return Column(children: [
       const PanelHeader(
@@ -47,55 +65,64 @@ class AdminEmpleados extends StatelessWidget {
           color: AppColors.admin,
           icon: Icons.account_tree_outlined),
       Expanded(
-        child: ListView(padding: const EdgeInsets.all(12), children: [
-          AppCard(
-            child: Row(children: [
-              const Icon(Icons.groups_outlined, color: AppColors.admin),
-              const SizedBox(width: 10),
-              Text('$totalEmpresa miembros del equipo',
-                  style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textDark)),
-            ]),
-          ),
-          for (final label in orden)
-            AppCard(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    CardTitle(label),
-                    for (final u in grupos[label]!) _fila(u),
+        child: RefreshIndicator(
+          onRefresh: _cargar,
+          child: ListView(
+            padding: const EdgeInsets.all(12),
+            physics: const AlwaysScrollableScrollPhysics(),
+            children: [
+              if (_cargando)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 40),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else ...[
+                AppCard(
+                  child: Row(children: [
+                    const Icon(Icons.groups_outlined, color: AppColors.admin),
+                    const SizedBox(width: 10),
+                    Text('${lista.length} miembros del equipo',
+                        style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textDark)),
                   ]),
-            ),
-        ]),
+                ),
+                for (final label in orden)
+                  AppCard(
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          CardTitle(label),
+                          for (final p in grupos[label]!) _fila(p),
+                        ]),
+                  ),
+              ],
+            ],
+          ),
+        ),
       ),
     ]);
   }
 
-  Widget _fila(Map<String, dynamic> u) {
-    final rol = '${u['rol']}';
-    final rc = rolPorClave(rol);
-    final esCampo = rolesDeCampo.contains(rol);
-    final areas = esCampo ? areasDeTrabajador('${u['id']}').length : 0;
+  Widget _fila(Persona p) {
+    final rc = rolPorClave(p.rol);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(children: [
-        Avatar(_iniciales('${u['nombre']}'), colorKey: rc?.color ?? 'blue'),
+        Avatar(_iniciales(p.nombre), colorKey: rc?.color ?? 'blue'),
         const SizedBox(width: 10),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('${u['nombre']}',
+            Text(p.nombre,
                 style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                     color: AppColors.textDark)),
-            Text(rc?.nombre ?? rol,
+            Text(rc?.nombre ?? p.rol,
                 style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
           ]),
         ),
-        if (esCampo)
-          AppBadge('$areas área(s)', tone: areas > 0 ? 'green' : 'gray'),
       ]),
     );
   }

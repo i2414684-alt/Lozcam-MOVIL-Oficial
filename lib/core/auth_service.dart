@@ -21,12 +21,14 @@ class SessionUser {
   final String email;
   final String nombre;
   final String rol; // clave del rol == profiles.rol
+  final int? clienteId; // profiles.cliente_id (para el rol cliente)
 
   const SessionUser({
     required this.id,
     required this.email,
     required this.nombre,
     required this.rol,
+    this.clienteId,
   });
 
   RolConfig? get config => rolPorClave(rol);
@@ -48,14 +50,20 @@ class SessionUser {
 
   AppArea get area => areaDeRol(rol);
 
-  Map<String, dynamic> toJson() =>
-      {'id': id, 'email': email, 'nombre': nombre, 'rol': rol};
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'email': email,
+        'nombre': nombre,
+        'rol': rol,
+        'cliente_id': clienteId,
+      };
 
   factory SessionUser.fromJson(Map<String, dynamic> j) => SessionUser(
         id: j['id'] as String,
         email: (j['email'] ?? '') as String,
         nombre: (j['nombre'] ?? 'Usuario') as String,
         rol: (j['rol'] ?? 'operario') as String,
+        clienteId: (j['cliente_id'] as num?)?.toInt(),
       );
 }
 
@@ -211,7 +219,7 @@ class AuthService {
     try {
       row = await supabase
           .from('profiles')
-          .select('id, nombre, apellidos, rol, activo')
+          .select('id, nombre, apellidos, rol, activo, cliente_id')
           .eq('id', id)
           .maybeSingle();
     } catch (_) {
@@ -230,6 +238,7 @@ class AuthService {
       email: email,
       nombre: nombre.isEmpty ? email : nombre,
       rol: (row['rol'] ?? 'operario').toString(),
+      clienteId: (row['cliente_id'] as num?)?.toInt(),
     );
   }
 

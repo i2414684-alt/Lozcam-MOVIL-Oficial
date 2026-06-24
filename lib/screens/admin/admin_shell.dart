@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../theme/colors.dart';
 import '../../core/auth_service.dart';
 import '../tutorial_overlay.dart';
+import 'chat_gerente.dart';
 import 'admin_dashboard.dart';
 import 'admin_obras.dart';
 import 'admin_areas.dart';
@@ -38,6 +39,12 @@ class _AdminShellState extends State<AdminShell> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(index: _i, children: _pages),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: AppColors.admin,
+        tooltip: 'Asistente IA',
+        onPressed: () => mostrarChatGerente(context),
+        child: const Text('🤖', style: TextStyle(fontSize: 22)),
+      ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _i,
         onTap: (v) => setState(() => _i = v),

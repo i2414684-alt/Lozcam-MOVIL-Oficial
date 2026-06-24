@@ -84,3 +84,6 @@ bool get credencialesListas =>
 /// Nombre legible del entorno (se muestra en la app para no confundirte).
 String get nombreEntorno =>
     entornoActivo == Entorno.duplicada ? 'BD Duplicada' : 'BD Producción';
+
+/// URL base de las Edge Functions de Supabase (para el asistente IA del gerente).
+String get funcionesUrl => '$supabaseUrl/functions/v1';

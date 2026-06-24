@@ -48,3 +48,33 @@ Future<List<Persona>> personasDeRoles(Set<String> roles) async {
   }
   return out;
 }
+
+/// Todo el personal de la empresa (sin clientes). Producción: `profiles`;
+/// sin nube: usuarios de la memoria interna.
+Future<List<Persona>> todoElPersonal() async {
+  if (supabaseListo) {
+    try {
+      final rows = await supabase
+          .from('profiles')
+          .select('id, nombre, apellidos, rol')
+          .neq('rol', 'cliente');
+      return (rows as List).map((r) {
+        final m = Map<String, dynamic>.from(r as Map);
+        final nombre = [m['nombre'], m['apellidos']]
+            .where((e) => e != null && e.toString().trim().isNotEmpty)
+            .map((e) => e.toString().trim())
+            .join(' ');
+        return Persona('${m['id']}', nombre.isEmpty ? 'Usuario' : nombre,
+            '${m['rol']}');
+      }).toList();
+    } catch (_) {
+      // cae a memoria interna
+    }
+  }
+  return LocalStore.usuarios()
+      .where((u) => u['rol'] != 'cliente')
+      .map((u) =>
+          Persona(u['id'] as String, (u['nombre'] ?? 'Usuario') as String,
+              '${u['rol']}'))
+      .toList();
+}

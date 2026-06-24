@@ -26,8 +26,7 @@ class _ClienteMapaState extends State<ClienteMapa> {
   }
 
   Future<void> _cargar() async {
-    final lista = await cargarObras();
-    final o = lista.isNotEmpty ? lista.first : null;
+    final o = await obraDelCliente();
     if (!mounted) return;
     setState(() {
       _obra = o;

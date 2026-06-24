@@ -127,6 +127,56 @@ class AsistenciaService {
       ..sort((a, b) => (b['hora'] as String).compareTo(a['hora'] as String));
   }
 
+  /// Resumen de asistencia del trabajador POR DÍA (más reciente primero).
+  /// - Producción: lee la tabla real `asistencias` (una fila por día con
+  ///   hora_entrada/hora_salida).
+  /// - Sin nube: agrupa los registros locales por fecha.
+  /// Cada item: { fecha, obra_nombre, hora_entrada, hora_salida }.
+  Future<List<Map<String, dynamic>>> resumen() async {
+    if (supabaseListo) {
+      final id = AuthService.instance.session?.id;
+      if (id != null) {
+        try {
+          final rows = await supabase
+              .from('asistencias')
+              .select('fecha, hora_entrada, hora_salida')
+              .eq('perfil_id', id)
+              .order('fecha', ascending: false)
+              .limit(60);
+          return (rows as List).map((e) {
+            final m = Map<String, dynamic>.from(e as Map);
+            return <String, dynamic>{
+              'fecha': m['fecha'],
+              'obra_nombre': '',
+              'hora_entrada': m['hora_entrada'],
+              'hora_salida': m['hora_salida'],
+            };
+          }).toList();
+        } catch (_) {
+          // cae a local
+        }
+      }
+    }
+    // Local: agrupar por fecha (entrada/salida en un solo item por día).
+    final porFecha = <String, Map<String, dynamic>>{};
+    for (final r in historialLocal()) {
+      final f = r['fecha'] as String;
+      final dia = porFecha.putIfAbsent(
+          f,
+          () => <String, dynamic>{
+                'fecha': f,
+                'obra_nombre': r['obra_nombre'] ?? '',
+                'hora_entrada': null,
+                'hora_salida': null,
+              });
+      if (r['tipo'] == 'entrada') dia['hora_entrada'] = r['hora'];
+      if (r['tipo'] == 'salida') dia['hora_salida'] = r['hora'];
+    }
+    final lista = porFecha.values.toList()
+      ..sort((a, b) => (b['fecha'] as String).compareTo(a['fecha'] as String));
+    return lista;
+  }
+
   List<Map<String, dynamic>> _leerRegistros() {
     final raw = LocalStore.cacheLeer('asistencias');
     if (raw is List) {
@@ -168,4 +218,30 @@ List<Map<String, dynamic>> registrosAsistenciaLocales() {
     return raw.map((e) => Map<String, dynamic>.from(e as Map)).toList();
   }
   return <Map<String, dynamic>>[];
+}
+
+/// Asistencias de HOY de toda la empresa (para gerencia). Cada item trae al
+/// menos { obra_id, perfil_id }. Producción: tabla `asistencias`; sin nube:
+/// registros locales de hoy con entrada.
+Future<List<Map<String, dynamic>>> asistenciasHoyTodas() async {
+  final d = DateTime.now();
+  final hoy = '${d.year.toString().padLeft(4, '0')}-'
+      '${d.month.toString().padLeft(2, '0')}-'
+      '${d.day.toString().padLeft(2, '0')}';
+  if (supabaseListo) {
+    try {
+      final rows = await supabase
+          .from('asistencias')
+          .select('obra_id, perfil_id')
+          .eq('fecha', hoy);
+      return (rows as List)
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+    } catch (_) {
+      // cae a local
+    }
+  }
+  return registrosAsistenciaLocales()
+      .where((r) => r['fecha'] == hoy && r['tipo'] == 'entrada')
+      .toList();
 }

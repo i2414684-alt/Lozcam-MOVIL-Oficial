@@ -40,6 +40,63 @@ List<Map<String, dynamic>> trabajadoresDeArea(int areaId) => LocalStore
 
 int contarTrabajadoresArea(int areaId) => trabajadoresDeArea(areaId).length;
 
+/// Detalle de asignaciones activas: lista de { obra_id, perfil_id }.
+/// Producción: tabla `asignaciones`; sin nube: memoria interna.
+Future<List<Map<String, dynamic>>> asignacionesDetalle() async {
+  if (supabaseListo) {
+    try {
+      final rows = await supabase
+          .from('asignaciones')
+          .select('obra_id, perfil_id')
+          .eq('activo', true);
+      return (rows as List)
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+    } catch (_) {
+      // cae a local
+    }
+  }
+  return LocalStore.asignaciones()
+      .map((a) => <String, dynamic>{
+            'obra_id': (a['area_id'] as num).toInt(),
+            'perfil_id': a['perfil_id'],
+          })
+      .toList();
+}
+
+/// Conteo de trabajadores asignados por obra (obra_id -> cantidad).
+/// Producción: tabla `asignaciones`; sin nube: memoria interna.
+Future<Map<int, int>> conteoAsignadosPorObra() async {
+  final map = <int, int>{};
+  final seen = <String>{};
+  if (supabaseListo) {
+    try {
+      final rows = await supabase
+          .from('asignaciones')
+          .select('obra_id, perfil_id')
+          .eq('activo', true);
+      for (final r in rows as List) {
+        final m = Map<String, dynamic>.from(r as Map);
+        final oid = (m['obra_id'] as num).toInt();
+        if (seen.add('$oid|${m['perfil_id']}')) {
+          map[oid] = (map[oid] ?? 0) + 1;
+        }
+      }
+      return map;
+    } catch (_) {
+      map.clear();
+      seen.clear();
+    }
+  }
+  for (final a in LocalStore.asignaciones()) {
+    final oid = (a['area_id'] as num).toInt();
+    if (seen.add('$oid|${a['perfil_id']}')) {
+      map[oid] = (map[oid] ?? 0) + 1;
+    }
+  }
+  return map;
+}
+
 Future<void> asignar({
   required Persona persona,
   required int areaId,
