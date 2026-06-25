@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'theme/colors.dart';
+import 'theme/app_theme.dart';
+import 'theme/theme_controller.dart';
 import 'core/local_store.dart';
 import 'core/supabase_client.dart';
 import 'core/auth_service.dart';
@@ -9,6 +11,7 @@ import 'screens/shell_router.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await LocalStore.init(); // memoria interna del dispositivo
+  ThemeController.instance.cargar(); // preferencia de tema guardada
   await initSupabase(); // nube (solo si hay credenciales en config.dart)
   runApp(const LozcamApp());
 }
@@ -17,15 +20,20 @@ class LozcamApp extends StatelessWidget {
   const LozcamApp({super.key});
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Lozcam',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        scaffoldBackgroundColor: AppColors.screen,
-        colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primary),
-      ),
-      home: const AuthGate(),
+    // Escucha el modo de tema: al alternar claro/oscuro, MaterialApp se
+    // reconstruye y toda la app cambia automáticamente.
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: ThemeController.instance.modo,
+      builder: (context, modo, _) {
+        return MaterialApp(
+          title: 'Lozcam',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light, // Modo Claro (Poppins incluida)
+          darkTheme: AppTheme.dark, // Modo Oscuro
+          themeMode: modo, // claro / oscuro / sistema
+          home: const AuthGate(),
+        );
+      },
     );
   }
 }

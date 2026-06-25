@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/colors.dart';
+import '../theme/app_theme.dart';
 import '../core/auth_service.dart';
 import '../models/models.dart';
 import '../data/roles.dart';
@@ -119,20 +120,20 @@ class _DelegarTareaState extends State<DelegarTarea> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.tokens.appBg,
       appBar: AppBar(
         backgroundColor: widget.color,
         foregroundColor: Colors.white,
         title: const Text('Delegar tarea'),
       ),
       body: _destinos.isEmpty
-          ? const Center(
+          ? Center(
               child: Padding(
-                padding: EdgeInsets.all(24),
+                padding: const EdgeInsets.all(24),
                 child: Text(
                     'Tu rol no tiene a quién delegarle tareas.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: AppColors.textMuted)),
+                    style: TextStyle(color: context.tokens.textSecondary)),
               ),
             )
           : ListView(padding: const EdgeInsets.all(16), children: [
@@ -217,14 +218,14 @@ class _DelegarTareaState extends State<DelegarTarea> {
                 child: InputDecorator(
                   decoration: _dec(''),
                   child: Row(children: [
-                    const Icon(Icons.event, size: 18, color: AppColors.textMuted),
+                    Icon(Icons.event, size: 18, color: context.tokens.textSecondary),
                     const SizedBox(width: 8),
                     Text(
                       _fecha == null
                           ? 'Sin fecha'
                           : _fecha!.toIso8601String().substring(0, 10),
-                      style: const TextStyle(
-                          fontSize: 14, color: AppColors.textDark),
+                      style: TextStyle(
+                          fontSize: 14, color: context.tokens.textPrimary),
                     ),
                   ]),
                 ),
@@ -261,14 +262,14 @@ class _DelegarTareaState extends State<DelegarTarea> {
     if (_cargandoPersonas) {
       return InputDecorator(
         decoration: _dec(''),
-        child: const Row(children: [
-          SizedBox(
+        child: Row(children: [
+          const SizedBox(
               width: 16,
               height: 16,
               child: CircularProgressIndicator(strokeWidth: 2)),
-          SizedBox(width: 10),
+          const SizedBox(width: 10),
           Text('Cargando personas…',
-              style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
+              style: TextStyle(fontSize: 13, color: context.tokens.textSecondary)),
         ]),
       );
     }
@@ -290,17 +291,17 @@ class _DelegarTareaState extends State<DelegarTarea> {
   Widget _label(String t) => Padding(
         padding: const EdgeInsets.only(bottom: 6),
         child: Text(t,
-            style: const TextStyle(
+            style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textSoft)),
+                color: context.tokens.textSecondary)),
       );
 
   InputDecoration _dec(String hint) => InputDecoration(
         hintText: hint,
         isDense: true,
         filled: true,
-        fillColor: AppColors.screen,
+        fillColor: context.tokens.appBg,
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         border: OutlineInputBorder(

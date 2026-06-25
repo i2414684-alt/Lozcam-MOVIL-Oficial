@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/colors.dart';
+import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
 import '../../data/roles.dart';
 import '../../data/personas_repository.dart';
@@ -82,10 +83,10 @@ class _AdminEmpleadosState extends State<AdminEmpleados> {
                     const Icon(Icons.groups_outlined, color: AppColors.admin),
                     const SizedBox(width: 10),
                     Text('${lista.length} miembros del equipo',
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: AppColors.textDark)),
+                            color: context.tokens.textPrimary)),
                   ]),
                 ),
                 for (final label in orden)
@@ -115,12 +116,12 @@ class _AdminEmpleadosState extends State<AdminEmpleados> {
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(p.nombre,
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
-                    color: AppColors.textDark)),
+                    color: context.tokens.textPrimary)),
             Text(rc?.nombre ?? p.rol,
-                style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                style: TextStyle(fontSize: 11, color: context.tokens.textSecondary)),
           ]),
         ),
       ]),

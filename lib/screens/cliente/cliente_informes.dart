@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../theme/colors.dart';
+import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
 import '../../models/models.dart';
 import '../../data/obras_repository.dart';
@@ -67,10 +68,10 @@ class _ClienteInformesState extends State<ClienteInformes> {
                   child: Center(child: CircularProgressIndicator()),
                 )
               else if (obra == null)
-                const AppCard(
+                AppCard(
                   child: IconRow(
                       icon: Icons.business_outlined,
-                      iconColor: AppColors.textMuted,
+                      iconColor: context.tokens.textSecondary,
                       title: 'Aún no hay un proyecto asignado',
                       subtitle: 'Aparecerá cuando el sistema lo registre.'),
                 )
@@ -107,10 +108,10 @@ class _ClienteInformesState extends State<ClienteInformes> {
                   ]),
                 ),
                 if (_avances.isEmpty)
-                  const AppCard(
+                  AppCard(
                     child: IconRow(
                         icon: Icons.description_outlined,
-                        iconColor: AppColors.textMuted,
+                        iconColor: context.tokens.textSecondary,
                         title: 'Aún no hay avances reportados',
                         subtitle: 'Cuando el equipo reporte, aparecerá aquí.'),
                   )
@@ -134,13 +135,13 @@ class _ClienteInformesState extends State<ClienteInformes> {
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(a.autor,
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.textDark)),
+                      color: context.tokens.textPrimary)),
               Text(_fecha(a.fecha),
-                  style: const TextStyle(
-                      fontSize: 11, color: AppColors.textMuted)),
+                  style: TextStyle(
+                      fontSize: 11, color: context.tokens.textSecondary)),
             ]),
           ),
           AppBadge('${a.pct}%',
@@ -153,8 +154,8 @@ class _ClienteInformesState extends State<ClienteInformes> {
         if (a.texto.isNotEmpty) ...[
           const SizedBox(height: 6),
           Text(a.texto,
-              style: const TextStyle(
-                  fontSize: 12, color: AppColors.textSoft, height: 1.4)),
+              style: TextStyle(
+                  fontSize: 12, color: context.tokens.textSecondary, height: 1.4)),
         ],
         ProgressBar(a.pct),
         if (tieneUrl || tieneLocal) ...[

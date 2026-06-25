@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../data/monitoreo.dart';
@@ -40,12 +41,24 @@ class IaService {
           )
           .timeout(const Duration(seconds: 45));
 
-      final body = jsonDecode(res.body) as Map<String, dynamic>;
-      if (res.statusCode == 200) {
-        return (body['respuesta'] ?? 'Sin respuesta.').toString();
+      if (res.statusCode == 401) {
+        return 'Tu sesión expiró. Vuelve a iniciar sesión.';
       }
-      return (body['error'] ?? 'El asistente no está disponible ahora.')
+      // Parseo defensivo: el cuerpo podría venir vacío o no ser un objeto JSON.
+      Map<String, dynamic>? body;
+      try {
+        final decoded = jsonDecode(res.body);
+        if (decoded is Map<String, dynamic>) body = decoded;
+      } catch (_) {}
+      if (res.statusCode == 200) {
+        final r = (body?['respuesta'] ?? '').toString().trim();
+        return r.isEmpty ? 'Sin respuesta.' : r;
+      }
+      return (body?['error'] ??
+              'El asistente no está disponible ahora (${res.statusCode}).')
           .toString();
+    } on TimeoutException {
+      return 'El asistente tardó demasiado en responder. Intenta de nuevo.';
     } catch (_) {
       return 'No se pudo contactar al asistente. Revisa tu conexión.';
     }

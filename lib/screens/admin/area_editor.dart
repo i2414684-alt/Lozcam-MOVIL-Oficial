@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../../theme/colors.dart';
+import '../../theme/app_theme.dart';
 import '../../core/geocoding_service.dart';
 import '../../data/obras_repository.dart';
 import '../../models/models.dart';
@@ -113,7 +114,7 @@ class _AreaEditorState extends State<AreaEditor> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.tokens.appBg,
       appBar: AppBar(
         backgroundColor: AppColors.admin,
         foregroundColor: Colors.white,
@@ -155,7 +156,7 @@ class _AreaEditorState extends State<AreaEditor> {
               hintText: 'Buscar dirección (ej. Jr. Loreto 240, Huancayo)',
               isDense: true,
               filled: true,
-              fillColor: AppColors.screen,
+              fillColor: context.tokens.appBg,
               prefixIcon: const Icon(Icons.search, size: 20),
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -193,15 +194,15 @@ class _AreaEditorState extends State<AreaEditor> {
       constraints: const BoxConstraints(maxHeight: 180),
       margin: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-          color: AppColors.card,
+          color: context.tokens.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.border, width: 0.5)),
+          border: Border.all(color: context.tokens.border, width: 0.5)),
       child: ListView.separated(
         shrinkWrap: true,
         padding: const EdgeInsets.symmetric(vertical: 4),
         itemCount: _resultados.length,
         separatorBuilder: (_, __) =>
-            const Divider(height: 1, color: AppColors.line),
+            Divider(height: 1, color: context.tokens.border),
         itemBuilder: (_, i) {
           final r = _resultados[i];
           return ListTile(
@@ -270,10 +271,10 @@ class _AreaEditorState extends State<AreaEditor> {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(10),
                 border:
-                    Border.all(color: AppColors.border, width: 0.5)),
-            child: const Text(
+                    Border.all(color: context.tokens.border, width: 0.5)),
+            child: Text(
                 'Busca una dirección o toca el mapa para fijar el área.',
-                style: TextStyle(fontSize: 12, color: AppColors.textSoft)),
+                style: TextStyle(fontSize: 12, color: context.tokens.textSecondary)),
           ),
         ),
     ]);
@@ -282,9 +283,9 @@ class _AreaEditorState extends State<AreaEditor> {
   Widget _panelInferior() {
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: Colors.white,
-        border: Border(top: BorderSide(color: AppColors.border, width: 0.5)),
+        border: Border(top: BorderSide(color: context.tokens.border, width: 0.5)),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         if (_direccion != null) ...[
@@ -295,8 +296,8 @@ class _AreaEditorState extends State<AreaEditor> {
               child: Text(_direccion!,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      fontSize: 11, color: AppColors.textMuted)),
+                  style: TextStyle(
+                      fontSize: 11, color: context.tokens.textSecondary)),
             ),
           ]),
           const SizedBox(height: 8),
@@ -307,7 +308,7 @@ class _AreaEditorState extends State<AreaEditor> {
             hintText: 'Nombre del área (ej. Edif. Residencial Huancayo)',
             isDense: true,
             filled: true,
-            fillColor: AppColors.screen,
+            fillColor: context.tokens.appBg,
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             border: OutlineInputBorder(
@@ -317,13 +318,13 @@ class _AreaEditorState extends State<AreaEditor> {
         ),
         const SizedBox(height: 6),
         Row(children: [
-          const Icon(Icons.adjust, size: 16, color: AppColors.textMuted),
+          Icon(Icons.adjust, size: 16, color: context.tokens.textSecondary),
           const SizedBox(width: 6),
           Text('Radio permitido: $_radio m',
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.textDark)),
+                  color: context.tokens.textPrimary)),
         ]),
         Slider(
           value: _radio.toDouble(),

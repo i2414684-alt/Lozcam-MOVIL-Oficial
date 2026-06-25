@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/colors.dart';
+import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
 import '../../core/local_store.dart';
 import '../../data/roles.dart';
@@ -42,8 +43,8 @@ class ClienteContacto extends StatelessWidget {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               const CardTitle('Equipo de tu obra'),
               if (equipo.isEmpty)
-                const Text('Sin contactos disponibles.',
-                    style: TextStyle(fontSize: 12, color: AppColors.textMuted))
+                Text('Sin contactos disponibles.',
+                    style: TextStyle(fontSize: 12, color: context.tokens.textSecondary))
               else
                 for (final u in equipo)
                   Padding(
@@ -57,15 +58,15 @@ class ClienteContacto extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text('${u['nombre']}',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w500,
-                                      color: AppColors.textDark)),
+                                      color: context.tokens.textPrimary)),
                               Text(
                                   rolPorClave('${u['rol']}')?.nombre ??
                                       '${u['rol']}',
-                                  style: const TextStyle(
-                                      fontSize: 11, color: AppColors.textMuted)),
+                                  style: TextStyle(
+                                      fontSize: 11, color: context.tokens.textSecondary)),
                             ]),
                       ),
                     ]),

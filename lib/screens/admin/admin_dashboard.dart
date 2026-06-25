@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/colors.dart';
+import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
 import '../../models/models.dart';
 import '../../core/auth_service.dart';
@@ -92,9 +93,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       children: [
                         const CardTitle('Obras'),
                         if (_obras.isEmpty)
-                          const Text('No hay obras activas.',
+                          Text('No hay obras activas.',
                               style: TextStyle(
-                                  fontSize: 12, color: AppColors.textMuted))
+                                  fontSize: 12, color: context.tokens.textSecondary))
                         else
                           for (final o in _obras)
                             Padding(
@@ -105,9 +106,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(o.nombre,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                           fontSize: 13,
-                                          color: AppColors.textDark)),
+                                          color: context.tokens.textPrimary)),
                                 ),
                                 AppBadge('${_conteo[o.id] ?? 0} trab.',
                                     tone: 'blue'),
@@ -121,9 +122,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     children: [
                       const CardTitle('Tareas recientes'),
                       if (tareas.isEmpty)
-                        const Text('Aún no has delegado tareas.',
+                        Text('Aún no has delegado tareas.',
                             style: TextStyle(
-                                fontSize: 12, color: AppColors.textMuted))
+                                fontSize: 12, color: context.tokens.textSecondary))
                       else
                         for (final t in tareas.take(4))
                           Padding(
@@ -133,9 +134,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
                                 child: Text('${t.titulo} → ${t.destinoTexto}',
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                         fontSize: 12,
-                                        color: AppColors.textDark)),
+                                        color: context.tokens.textPrimary)),
                               ),
                               const SizedBox(width: 6),
                               AppBadge(estadoTareaLabel(t.estado),

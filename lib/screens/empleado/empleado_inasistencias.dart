@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/colors.dart';
+import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
 import '../../core/asistencia_service.dart';
 
@@ -67,7 +68,7 @@ class _EmpleadoInasistenciasState extends State<EmpleadoInasistencias> {
                 const SizedBox(width: 8),
                 StatCard('$entradas', 'Entradas', color: AppColors.success),
                 const SizedBox(width: 8),
-                StatCard('$salidas', 'Salidas', color: AppColors.textSoft),
+                StatCard('$salidas', 'Salidas', color: context.tokens.textSecondary),
               ]),
               const SizedBox(height: 10),
               if (_cargando)
@@ -76,10 +77,10 @@ class _EmpleadoInasistenciasState extends State<EmpleadoInasistencias> {
                   child: Center(child: CircularProgressIndicator()),
                 )
               else if (_dias.isEmpty)
-                const AppCard(
+                AppCard(
                   child: IconRow(
                       icon: Icons.fingerprint,
-                      iconColor: AppColors.textMuted,
+                      iconColor: context.tokens.textSecondary,
                       title: 'Aún no has marcado asistencia',
                       subtitle: 'Tus marcas aparecerán aquí por día.'),
                 )
@@ -110,13 +111,13 @@ class _EmpleadoInasistenciasState extends State<EmpleadoInasistencias> {
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(obra.isEmpty ? _fechaCorta(d['fecha']) : '${_fechaCorta(d['fecha'])} · $obra',
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: AppColors.textDark)),
+                    color: context.tokens.textPrimary)),
             Text(
                 'Entrada ${_hora(d['hora_entrada'])}  ·  Salida ${_hora(salida)}',
-                style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                style: TextStyle(fontSize: 11, color: context.tokens.textSecondary)),
           ]),
         ),
         AppBadge(salida != null ? 'Completo' : 'Solo entrada',

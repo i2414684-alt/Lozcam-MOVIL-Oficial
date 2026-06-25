@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/colors.dart';
+import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
 import '../../data/tareas_repository.dart';
 import '../delegar_tarea.dart';
@@ -71,10 +72,10 @@ class _AdminTareasState extends State<AdminTareas> {
           ]),
           const SizedBox(height: 10),
           if (_tareas.isEmpty)
-            const AppCard(
+            AppCard(
               child: IconRow(
                   icon: Icons.assignment_outlined,
-                  iconColor: AppColors.textMuted,
+                  iconColor: context.tokens.textSecondary,
                   title: 'Sin tareas delegadas',
                   subtitle: 'Delega la primera a un rol de la empresa.'),
             )
@@ -91,26 +92,26 @@ class _AdminTareasState extends State<AdminTareas> {
         Row(children: [
           Expanded(
             child: Text(t.titulo,
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textDark)),
+                    color: context.tokens.textPrimary)),
           ),
           AppBadge(estadoTareaLabel(t.estado), tone: estadoTareaTone(t.estado)),
         ]),
         if (t.descripcion.isNotEmpty) ...[
           const SizedBox(height: 2),
           Text(t.descripcion,
-              style: const TextStyle(fontSize: 11, color: AppColors.textSoft)),
+              style: TextStyle(fontSize: 11, color: context.tokens.textSecondary)),
         ],
         const SizedBox(height: 6),
         Row(children: [
-          const Icon(Icons.arrow_downward, size: 13, color: AppColors.textMuted),
+          Icon(Icons.arrow_downward, size: 13, color: context.tokens.textSecondary),
           const SizedBox(width: 2),
           Expanded(
             child: Text('${t.asignadoPorNombre}  →  ${t.destinoTexto}',
                 style:
-                    const TextStyle(fontSize: 11, color: AppColors.textSoft)),
+                    TextStyle(fontSize: 11, color: context.tokens.textSecondary)),
           ),
         ]),
         const SizedBox(height: 6),
@@ -119,7 +120,7 @@ class _AdminTareasState extends State<AdminTareas> {
           const SizedBox(width: 6),
           if (t.fechaEntrega != null)
             Text('Vence ${t.fechaEntrega}',
-                style: const TextStyle(fontSize: 10, color: AppColors.textMuted)),
+                style: TextStyle(fontSize: 10, color: context.tokens.textSecondary)),
           const Spacer(),
           IconButton(
             icon: const Icon(Icons.delete_outline,

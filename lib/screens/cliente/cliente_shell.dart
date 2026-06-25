@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/colors.dart';
+import '../../theme/app_theme.dart';
 import '../../core/auth_service.dart';
 import '../tutorial_overlay.dart';
 import 'cliente_dashboard.dart';
@@ -39,7 +40,7 @@ class _ClienteShellState extends State<ClienteShell> {
         onTap: (v) => setState(() => _i = v),
         type: BottomNavigationBarType.fixed,
         selectedItemColor: AppColors.cliente,
-        unselectedItemColor: AppColors.textMuted,
+        unselectedItemColor: context.tokens.textSecondary,
         selectedFontSize: 10,
         unselectedFontSize: 10,
         items: const [

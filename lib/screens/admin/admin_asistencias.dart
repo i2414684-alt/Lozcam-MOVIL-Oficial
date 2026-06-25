@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/colors.dart';
+import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
 import '../../models/models.dart';
 import '../../core/asistencia_service.dart';
@@ -96,8 +97,8 @@ class _AdminAsistenciasState extends State<AdminAsistencias> {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         const CardTitle('Tareas por estado'),
         if (tareas.isEmpty)
-          const Text('Aún no hay tareas delegadas.',
-              style: TextStyle(fontSize: 12, color: AppColors.textMuted))
+          Text('Aún no hay tareas delegadas.',
+              style: TextStyle(fontSize: 12, color: context.tokens.textSecondary))
         else
           Row(children: [
             _mini(n('pendiente'), 'Pendientes', 'gray'),
@@ -117,7 +118,7 @@ class _AdminAsistenciasState extends State<AdminAsistencias> {
                 fontSize: 20, fontWeight: FontWeight.w700, color: p.fg)),
         Text(label,
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 10, color: AppColors.textMuted)),
+            style: TextStyle(fontSize: 10, color: context.tokens.textSecondary)),
       ]),
     );
   }
@@ -127,8 +128,8 @@ class _AdminAsistenciasState extends State<AdminAsistencias> {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         const CardTitle('Por obra'),
         if (_obras.isEmpty)
-          const Text('No hay obras activas.',
-              style: TextStyle(fontSize: 12, color: AppColors.textMuted))
+          Text('No hay obras activas.',
+              style: TextStyle(fontSize: 12, color: context.tokens.textSecondary))
         else
           for (final o in _obras) _filaArea(o),
       ]),
@@ -151,13 +152,13 @@ class _AdminAsistenciasState extends State<AdminAsistencias> {
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(o.nombre,
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
-                    color: AppColors.textDark)),
+                    color: context.tokens.textPrimary)),
             Text('$asignados asignado(s)',
                 style:
-                    const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                    TextStyle(fontSize: 11, color: context.tokens.textSecondary)),
           ]),
         ),
         AppBadge('$presentes/$asignados hoy', tone: tone),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/colors.dart';
+import '../../theme/app_theme.dart';
 import '../../models/models.dart';
 import '../../data/roles.dart';
 import '../../data/personas_repository.dart';
@@ -52,7 +53,7 @@ class _AsignarTrabajadoresState extends State<AsignarTrabajadores> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.tokens.appBg,
       appBar: AppBar(
         backgroundColor: AppColors.admin,
         foregroundColor: Colors.white,
@@ -63,34 +64,34 @@ class _AsignarTrabajadoresState extends State<AsignarTrabajadores> {
           : Column(children: [
               Container(
                 width: double.infinity,
-                color: AppColors.screen,
+                color: context.tokens.appBg,
                 padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(widget.area.nombre,
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
-                              color: AppColors.textDark)),
+                              color: context.tokens.textPrimary)),
                       Text('${_asignados.length} asignado(s)',
-                          style: const TextStyle(
-                              fontSize: 12, color: AppColors.textMuted)),
+                          style: TextStyle(
+                              fontSize: 12, color: context.tokens.textSecondary)),
                     ]),
               ),
               Expanded(
                 child: _personas.isEmpty
-                    ? const Center(
+                    ? Center(
                         child: Padding(
-                          padding: EdgeInsets.all(24),
+                          padding: const EdgeInsets.all(24),
                           child: Text('No hay personal de campo disponible.',
-                              style: TextStyle(color: AppColors.textMuted)),
+                              style: TextStyle(color: context.tokens.textSecondary)),
                         ),
                       )
                     : ListView.separated(
                         itemCount: _personas.length,
                         separatorBuilder: (_, __) =>
-                            const Divider(height: 1, color: AppColors.line),
+                            Divider(height: 1, color: context.tokens.border),
                         itemBuilder: (_, i) {
                           final p = _personas[i];
                           return CheckboxListTile(
@@ -100,8 +101,8 @@ class _AsignarTrabajadoresState extends State<AsignarTrabajadores> {
                                 style: const TextStyle(fontSize: 14)),
                             subtitle: Text(
                                 rolPorClave(p.rol)?.nombre ?? p.rol,
-                                style: const TextStyle(
-                                    fontSize: 12, color: AppColors.textMuted)),
+                                style: TextStyle(
+                                    fontSize: 12, color: context.tokens.textSecondary)),
                             onChanged: (v) => _toggle(p, v ?? false),
                           );
                         },

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/colors.dart';
+import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
 import '../../models/models.dart';
 import '../../data/obras_repository.dart';
@@ -32,10 +33,10 @@ class _AdminObrasState extends State<AdminObras> {
           onRefresh: _refrescar,
           child: ListView(padding: const EdgeInsets.all(12), children: [
             if (areas.isEmpty)
-              const AppCard(
+              AppCard(
                 child: IconRow(
                     icon: Icons.business_outlined,
-                    iconColor: AppColors.textMuted,
+                    iconColor: context.tokens.textSecondary,
                     title: 'No hay obras registradas',
                     subtitle: 'Créalas en la pestaña "Áreas".'),
               )
@@ -66,13 +67,13 @@ class _AdminObrasState extends State<AdminObras> {
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(o.nombre,
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
-                    color: AppColors.textDark)),
+                    color: context.tokens.textPrimary)),
             Text(
                 '$trabajadores trabajador(es) · ${avances.length} reporte(s)',
-                style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                style: TextStyle(fontSize: 11, color: context.tokens.textSecondary)),
             ProgressBar(pct),
           ]),
         ),

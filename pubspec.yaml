@@ -23,6 +23,8 @@ dependencies:
   http: ^1.2.0
   # Foto de evidencia (cámara/galería). Se guarda local; subirá a Storage al integrar.
   image_picker: ^1.1.0
+  # Tipografía moderna (Poppins) para el rediseño visual
+  google_fonts: ^6.2.1
 
 dev_dependencies:
   flutter_test:

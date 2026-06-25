@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/colors.dart';
+import '../theme/app_theme.dart';
 import '../core/auth_service.dart';
 import '../core/local_store.dart';
 
@@ -83,7 +84,7 @@ class _TutorialDialogState extends State<_TutorialDialog> {
     final esUltima = _i == slides.length - 1;
 
     return Dialog(
-      backgroundColor: Colors.white,
+      backgroundColor: context.tokens.surface,
       shape:
           RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Padding(
@@ -110,7 +111,7 @@ class _TutorialDialogState extends State<_TutorialDialog> {
                   width: d == _i ? 18 : 7,
                   height: 7,
                   decoration: BoxDecoration(
-                      color: d == _i ? color : AppColors.border,
+                      color: d == _i ? color : context.tokens.border,
                       borderRadius: BorderRadius.circular(4)),
                 ),
             ],
@@ -119,8 +120,8 @@ class _TutorialDialogState extends State<_TutorialDialog> {
           Row(children: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Saltar',
-                  style: TextStyle(color: AppColors.textMuted)),
+              child: Text('Saltar',
+                  style: TextStyle(color: context.tokens.textSecondary)),
             ),
             const Spacer(),
             ElevatedButton(
@@ -166,21 +167,21 @@ class _TutorialDialogState extends State<_TutorialDialog> {
       Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-            color: AppColors.screen,
+            color: context.tokens.appBg,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.border, width: 0.5)),
+            border: Border.all(color: context.tokens.border, width: 0.5)),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Text('${s.emoji}  ${s.titulo}',
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.textDark)),
+                  color: context.tokens.textPrimary)),
           const SizedBox(height: 6),
           Text(s.texto,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                  fontSize: 13, color: AppColors.textSoft, height: 1.4)),
+              style: TextStyle(
+                  fontSize: 13, color: context.tokens.textSecondary, height: 1.4)),
         ]),
       ),
     ]);

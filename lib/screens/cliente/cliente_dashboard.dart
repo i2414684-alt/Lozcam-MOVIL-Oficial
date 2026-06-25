@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/colors.dart';
+import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
 import '../../models/models.dart';
 import '../../core/auth_service.dart';
@@ -57,10 +58,10 @@ class _ClienteDashboardState extends State<ClienteDashboard> {
                   child: Center(child: CircularProgressIndicator()),
                 )
               else if (obra == null)
-                const AppCard(
+                AppCard(
                   child: IconRow(
                       icon: Icons.business_outlined,
-                      iconColor: AppColors.textMuted,
+                      iconColor: context.tokens.textSecondary,
                       title: 'Aún no hay un proyecto registrado',
                       subtitle: 'Aparecerá cuando el sistema lo asigne.'),
                 )

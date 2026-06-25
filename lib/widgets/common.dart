@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/colors.dart';
+import '../theme/app_theme.dart';
+import '../theme/theme_controller.dart';
 
 /// Tarjeta blanca con borde redondeado.
 class AppCard extends StatelessWidget {
@@ -15,9 +17,9 @@ class AppCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: color ?? AppColors.card,
+        color: color ?? context.tokens.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: borderColor ?? AppColors.border, width: 0.5),
+        border: Border.all(color: borderColor ?? context.tokens.border, width: 0.5),
       ),
       child: child,
     );
@@ -34,10 +36,10 @@ class CardTitle extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 8),
       child: Text(
         text.toUpperCase(),
-        style: const TextStyle(
+        style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w600,
-            color: AppColors.textMuted,
+            color: context.tokens.textSecondary,
             letterSpacing: 0.4),
       ),
     );
@@ -59,7 +61,7 @@ class ProgressBar extends StatelessWidget {
       height: 6,
       margin: const EdgeInsets.symmetric(vertical: 4),
       decoration: BoxDecoration(
-          color: AppColors.border, borderRadius: BorderRadius.circular(3)),
+          color: context.tokens.border, borderRadius: BorderRadius.circular(3)),
       child: FractionallySizedBox(
         alignment: Alignment.centerLeft,
         widthFactor: pct / 100,
@@ -104,19 +106,19 @@ class StatCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-            color: AppColors.card,
+            color: context.tokens.surface,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.border, width: 0.5)),
+            border: Border.all(color: context.tokens.border, width: 0.5)),
         child: Column(children: [
           Text(value,
               style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w700,
-                  color: color ?? AppColors.textDark)),
+                  color: color ?? context.tokens.textPrimary)),
           const SizedBox(height: 2),
           Text(label,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 10, color: AppColors.textMuted)),
+              style: TextStyle(fontSize: 10, color: context.tokens.textSecondary)),
         ]),
       ),
     );
@@ -198,6 +200,7 @@ class PanelHeader extends StatelessWidget {
                             color: Colors.white.withValues(alpha:0.78))),
                   ]),
             ),
+            const ThemeToggleButton(color: Colors.white),
             if (onLogout != null)
               IconButton(
                 tooltip: 'Cerrar sesión',
@@ -248,10 +251,10 @@ class MapPlaceholder extends StatelessWidget {
             decoration: BoxDecoration(
                 color: Colors.white, borderRadius: BorderRadius.circular(6)),
             child: Text(label,
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textDark)),
+                    color: context.tokens.textPrimary)),
           ),
         ),
         Positioned(
@@ -261,11 +264,11 @@ class MapPlaceholder extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
                 color: Colors.white, borderRadius: BorderRadius.circular(8)),
-            child: const Text('Google Maps',
+            child: Text('Google Maps',
                 style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textDark)),
+                    color: context.tokens.textPrimary)),
           ),
         ),
       ]),
@@ -300,10 +303,10 @@ class IconRow extends StatelessWidget {
                 style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
-                    color: titleColor ?? AppColors.textDark)),
+                    color: titleColor ?? context.tokens.textPrimary)),
             const SizedBox(height: 1),
             Text(subtitle,
-                style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                style: TextStyle(fontSize: 11, color: context.tokens.textSecondary)),
           ]),
         ),
       ]),

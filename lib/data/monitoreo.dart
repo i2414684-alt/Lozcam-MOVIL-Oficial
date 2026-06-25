@@ -36,7 +36,13 @@ Future<String> construirContextoMonitoreo() async {
     sb.writeln('- (No hay obras activas o no se pudieron leer.)');
   }
 
-  for (final o in obras) {
+  // Avances de todas las obras en paralelo (evita N+1 secuencial y reduce la
+  // latencia online, para no acercarse al timeout del chat).
+  final avancesPorObra =
+      await Future.wait(obras.map((o) => avancesDeObra(o.id)));
+
+  for (var i = 0; i < obras.length; i++) {
+    final o = obras[i];
     final asignadosIds = detalle
         .where((x) => (x['obra_id'] as num?)?.toInt() == o.id)
         .map((x) => '${x['perfil_id']}')
@@ -48,7 +54,7 @@ Future<String> construirContextoMonitoreo() async {
     String nombres(List<String> ids) =>
         ids.map((id) => nombrePorId[id] ?? 'ID:$id').join(', ');
 
-    final avances = await avancesDeObra(o.id);
+    final avances = avancesPorObra[i];
     final pct = avances.isNotEmpty ? '${avances.first.pct}%' : 'sin reporte';
 
     sb.writeln('- ${o.nombre}'

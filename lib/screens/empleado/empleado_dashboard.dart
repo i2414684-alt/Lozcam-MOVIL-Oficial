@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/colors.dart';
+import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
 import '../../models/models.dart';
 import '../../core/auth_service.dart';
@@ -101,8 +102,8 @@ class EmpleadoDashboard extends StatelessWidget {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               const CardTitle('Mis tareas'),
               if (tareas.isEmpty)
-                const Text('No tienes tareas asignadas.',
-                    style: TextStyle(fontSize: 12, color: AppColors.textMuted))
+                Text('No tienes tareas asignadas.',
+                    style: TextStyle(fontSize: 12, color: context.tokens.textSecondary))
               else
                 for (final t in pendientes.take(3))
                   Padding(
@@ -113,8 +114,8 @@ class EmpleadoDashboard extends StatelessWidget {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(t.titulo,
-                            style: const TextStyle(
-                                fontSize: 13, color: AppColors.textDark)),
+                            style: TextStyle(
+                                fontSize: 13, color: context.tokens.textPrimary)),
                       ),
                       AppBadge(estadoTareaLabel(t.estado),
                           tone: estadoTareaTone(t.estado)),
@@ -136,7 +137,7 @@ class EmpleadoDashboard extends StatelessWidget {
                     num: '$entradas', label: 'Entradas', color: AppColors.success),
                 const SizedBox(width: 16),
                 _MiniStat(
-                    num: '$salidas', label: 'Salidas', color: AppColors.textSoft),
+                    num: '$salidas', label: 'Salidas', color: context.tokens.textSecondary),
               ]),
             ]),
           ),
@@ -157,7 +158,7 @@ class _MiniStat extends StatelessWidget {
           style: TextStyle(
               fontSize: 20, fontWeight: FontWeight.w700, color: color)),
       Text(label,
-          style: const TextStyle(fontSize: 10, color: AppColors.textMuted)),
+          style: TextStyle(fontSize: 10, color: context.tokens.textSecondary)),
     ]);
   }
 }

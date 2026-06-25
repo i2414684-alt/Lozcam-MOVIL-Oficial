@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../theme/colors.dart';
+import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
 import '../../models/models.dart';
 import '../../core/auth_service.dart';
@@ -172,12 +173,12 @@ class _EmpleadoInformeState extends State<EmpleadoInforme> {
                       : 'Ej. Vaciado de 4 columnas eje B-C, 6 operarios.',
                   isDense: true,
                   filled: true,
-                  fillColor: AppColors.screen,
+                  fillColor: context.tokens.appBg,
                   contentPadding: const EdgeInsets.all(11),
                   enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                       borderSide:
-                          const BorderSide(color: AppColors.border, width: 0.5)),
+                          BorderSide(color: context.tokens.border, width: 0.5)),
                   focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                       borderSide: const BorderSide(color: AppColors.empleado)),
@@ -226,10 +227,10 @@ class _EmpleadoInformeState extends State<EmpleadoInforme> {
     if (_esCampo) {
       _Label label = const _Label('Obra');
       if (_obras.isEmpty) {
-        return const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          _Label('Obra'),
+        return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const _Label('Obra'),
           Text('Sin obra asignada (se guardará como "General").',
-              style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+              style: TextStyle(fontSize: 12, color: context.tokens.textSecondary)),
         ]);
       }
       return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -256,11 +257,11 @@ class _EmpleadoInformeState extends State<EmpleadoInforme> {
               : 'Ej. Documento / entrega',
           isDense: true,
           filled: true,
-          fillColor: AppColors.screen,
+          fillColor: context.tokens.appBg,
           contentPadding: const EdgeInsets.symmetric(horizontal: 11, vertical: 11),
           enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: AppColors.border, width: 0.5)),
+              borderSide: BorderSide(color: context.tokens.border, width: 0.5)),
           focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
               borderSide: const BorderSide(color: AppColors.empleado)),
@@ -276,11 +277,11 @@ class _EmpleadoInformeState extends State<EmpleadoInforme> {
         width: double.infinity,
         child: OutlinedButton.icon(
           onPressed: _elegirFoto,
-          icon: const Icon(Icons.photo_camera_outlined,
-              size: 18, color: AppColors.textDark),
+          icon: Icon(Icons.photo_camera_outlined,
+              size: 18, color: context.tokens.textPrimary),
           label: Text(etiqueta,
-              style: const TextStyle(
-                  color: AppColors.textDark, fontWeight: FontWeight.w600)),
+              style: TextStyle(
+                  color: context.tokens.textPrimary, fontWeight: FontWeight.w600)),
           style: OutlinedButton.styleFrom(
               backgroundColor: AppColors.grayBg,
               side: BorderSide.none,
@@ -329,18 +330,18 @@ class _EmpleadoInformeState extends State<EmpleadoInforme> {
             Row(children: [
               Expanded(
                 child: Text('${inf.obraNombre} · ${inf.pct}%',
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textDark)),
+                        color: context.tokens.textPrimary)),
               ),
               Text(_fecha(inf.fecha),
-                  style: const TextStyle(
-                      fontSize: 10, color: AppColors.textMuted)),
+                  style: TextStyle(
+                      fontSize: 10, color: context.tokens.textSecondary)),
             ]),
             const SizedBox(height: 2),
             Text(inf.texto,
-                style: const TextStyle(fontSize: 11, color: AppColors.textSoft)),
+                style: TextStyle(fontSize: 11, color: context.tokens.textSecondary)),
             ProgressBar(inf.pct),
           ]),
         ),
@@ -366,10 +367,10 @@ class _Label extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(top: 10, bottom: 4),
       child: Text(text,
-          style: const TextStyle(
+          style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,
-              color: AppColors.textSoft)),
+              color: context.tokens.textSecondary)),
     );
   }
 }

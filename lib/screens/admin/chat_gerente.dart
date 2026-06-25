@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/colors.dart';
+import '../../theme/app_theme.dart';
 import '../../core/ia_service.dart';
 
 /// Abre el asistente IA del gerente en una hoja inferior.
@@ -80,9 +81,9 @@ class _ChatSheetState extends State<_ChatSheet> {
       padding: EdgeInsets.only(bottom: inset),
       child: Container(
         height: MediaQuery.of(context).size.height * 0.82,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        decoration: BoxDecoration(
+          color: context.tokens.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(children: [
           // Encabezado
@@ -131,7 +132,9 @@ class _ChatSheetState extends State<_ChatSheet> {
                   Padding(
                     padding: const EdgeInsets.only(right: 6),
                     child: ActionChip(
-                      label: Text(s, style: const TextStyle(fontSize: 11)),
+                      label: Text(s,
+                          style: const TextStyle(
+                              fontSize: 11, color: AppColors.orangeText)),
                       backgroundColor: AppColors.orangeBg,
                       side: BorderSide.none,
                       onPressed: _enviando ? null : () => _enviar(s),
@@ -153,7 +156,7 @@ class _ChatSheetState extends State<_ChatSheet> {
                     hintText: 'Escribe tu pregunta…',
                     isDense: true,
                     filled: true,
-                    fillColor: AppColors.screen,
+                    fillColor: context.tokens.appBg,
                     contentPadding:
                         const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                     border: OutlineInputBorder(
@@ -186,14 +189,14 @@ class _ChatSheetState extends State<_ChatSheet> {
         constraints: BoxConstraints(
             maxWidth: MediaQuery.of(context).size.width * 0.78),
         decoration: BoxDecoration(
-          color: m.user ? AppColors.admin : AppColors.screen,
+          color: m.user ? AppColors.admin : context.tokens.appBg,
           borderRadius: BorderRadius.circular(14),
         ),
         child: Text(m.text,
             style: TextStyle(
                 fontSize: 13,
                 height: 1.35,
-                color: m.user ? Colors.white : AppColors.textDark)),
+                color: m.user ? Colors.white : context.tokens.textPrimary)),
       ),
     );
   }

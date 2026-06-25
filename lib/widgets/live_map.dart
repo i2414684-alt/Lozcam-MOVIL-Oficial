@@ -4,6 +4,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import '../theme/colors.dart';
+import '../theme/app_theme.dart';
 
 typedef PosicionCallback = void Function(Position pos);
 
@@ -284,11 +285,11 @@ class _LiveMapState extends State<LiveMap> {
       alignment: Alignment.center,
       padding: const EdgeInsets.all(16),
       child: Column(mainAxisSize: MainAxisSize.min, children: [
-        const Icon(Icons.location_off, size: 32, color: AppColors.textMuted),
+        Icon(Icons.location_off, size: 32, color: context.tokens.textSecondary),
         const SizedBox(height: 8),
         Text(_error!,
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 12, color: AppColors.textSoft)),
+            style: TextStyle(fontSize: 12, color: context.tokens.textSecondary)),
         const SizedBox(height: 10),
         OutlinedButton.icon(
           onPressed: _iniciar,

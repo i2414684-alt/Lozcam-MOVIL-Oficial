@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/colors.dart';
+import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
 import '../../core/auth_service.dart';
 import '../../data/roles.dart';
@@ -90,10 +91,10 @@ class _EmpleadoTareasState extends State<EmpleadoTareas> {
           ]),
           const SizedBox(height: 10),
           if (_tareas.isEmpty)
-            const AppCard(
+            AppCard(
               child: IconRow(
                   icon: Icons.assignment_turned_in_outlined,
-                  iconColor: AppColors.textMuted,
+                  iconColor: context.tokens.textSecondary,
                   title: 'No tienes tareas asignadas',
                   subtitle: 'Cuando te deleguen una, aparecerá aquí.'),
             )
@@ -110,28 +111,28 @@ class _EmpleadoTareasState extends State<EmpleadoTareas> {
         Row(children: [
           Expanded(
             child: Text(t.titulo,
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textDark)),
+                    color: context.tokens.textPrimary)),
           ),
           AppBadge(estadoTareaLabel(t.estado), tone: estadoTareaTone(t.estado)),
         ]),
         if (t.descripcion.isNotEmpty) ...[
           const SizedBox(height: 2),
           Text(t.descripcion,
-              style: const TextStyle(fontSize: 11, color: AppColors.textSoft)),
+              style: TextStyle(fontSize: 11, color: context.tokens.textSecondary)),
         ],
         const SizedBox(height: 6),
         Row(children: [
           AppBadge(prioridadLabel(t.prioridad), tone: prioridadTone(t.prioridad)),
           const SizedBox(width: 6),
           Text('De: ${t.asignadoPorNombre}',
-              style: const TextStyle(fontSize: 10, color: AppColors.textMuted)),
+              style: TextStyle(fontSize: 10, color: context.tokens.textSecondary)),
           const Spacer(),
           if (t.fechaEntrega != null)
             Text('Vence ${t.fechaEntrega}',
-                style: const TextStyle(fontSize: 10, color: AppColors.textMuted)),
+                style: TextStyle(fontSize: 10, color: context.tokens.textSecondary)),
         ]),
         const SizedBox(height: 8),
         _acciones(t),

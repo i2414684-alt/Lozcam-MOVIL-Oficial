@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/colors.dart';
+import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
 import '../../models/models.dart';
 import '../../data/obras_repository.dart';
@@ -93,10 +94,10 @@ class _AdminAreasState extends State<AdminAreas> {
           ),
           const SizedBox(height: 10),
           if (_areas.isEmpty)
-            const AppCard(
+            AppCard(
               child: IconRow(
                   icon: Icons.map_outlined,
-                  iconColor: AppColors.textMuted,
+                  iconColor: context.tokens.textSecondary,
                   title: 'Aún no hay áreas',
                   subtitle:
                       'Crea la primera para que los trabajadores marquen ahí.'),
@@ -123,19 +124,19 @@ class _AdminAreasState extends State<AdminAreas> {
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(a.nombre,
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textDark)),
+                    color: context.tokens.textPrimary)),
             if (a.direccion.isNotEmpty)
               Text(a.direccion,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style:
-                      const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                      TextStyle(fontSize: 11, color: context.tokens.textSecondary)),
             Text(
                 'Radio ${a.radioMetros} m · ${contarTrabajadoresArea(a.id)} trabajador(es)',
-                style: const TextStyle(fontSize: 10, color: AppColors.textMuted)),
+                style: TextStyle(fontSize: 10, color: context.tokens.textSecondary)),
           ]),
         ),
         IconButton(
@@ -145,8 +146,8 @@ class _AdminAreasState extends State<AdminAreas> {
           onPressed: () => _asignar(a),
         ),
         IconButton(
-          icon: const Icon(Icons.edit_outlined,
-              size: 20, color: AppColors.textSoft),
+          icon: Icon(Icons.edit_outlined,
+              size: 20, color: context.tokens.textSecondary),
           tooltip: 'Editar',
           onPressed: () => _editor(area: a),
         ),

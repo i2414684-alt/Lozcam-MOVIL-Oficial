@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/colors.dart';
+import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
 import '../../widgets/live_map.dart';
 import '../../models/models.dart';
@@ -34,9 +35,12 @@ class _ClienteMapaState extends State<ClienteMapa> {
       _direccion = (o != null && o.direccion.isNotEmpty) ? o.direccion : null;
     });
     // Si no hay dirección guardada, la resolvemos por geolocalización inversa.
+    // Si falla, mostramos un texto de respaldo (no se queda "Resolviendo…").
     if (o != null && _direccion == null) {
       final dir = await GeocodingService.instance.direccionDe(o.lat, o.lng);
-      if (mounted && dir != null) setState(() => _direccion = dir);
+      if (mounted) {
+        setState(() => _direccion = dir ?? 'Dirección no disponible');
+      }
     }
   }
 
@@ -53,11 +57,11 @@ class _ClienteMapaState extends State<ClienteMapa> {
         child: obra == null && _cargando
             ? const Center(child: CircularProgressIndicator())
             : obra == null
-                ? const Center(
+                ? Center(
                     child: Padding(
-                      padding: EdgeInsets.all(24),
+                      padding: const EdgeInsets.all(24),
                       child: Text('Aún no hay una obra asignada.',
-                          style: TextStyle(color: AppColors.textMuted)),
+                          style: TextStyle(color: context.tokens.textSecondary)),
                     ),
                   )
                 : ListView(padding: const EdgeInsets.all(12), children: [
@@ -84,16 +88,16 @@ class _ClienteMapaState extends State<ClienteMapa> {
                               Expanded(
                                 child: Text(
                                     _direccion ?? 'Resolviendo dirección…',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                         fontSize: 13,
-                                        color: AppColors.textDark)),
+                                        color: context.tokens.textPrimary)),
                               ),
                             ]),
                             const SizedBox(height: 6),
                             Text(
                                 'Coordenadas: ${obra.lat.toStringAsFixed(5)}, ${obra.lng.toStringAsFixed(5)}',
-                                style: const TextStyle(
-                                    fontSize: 11, color: AppColors.textMuted)),
+                                style: TextStyle(
+                                    fontSize: 11, color: context.tokens.textSecondary)),
                           ]),
                     ),
                   ]),

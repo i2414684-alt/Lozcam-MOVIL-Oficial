@@ -236,6 +236,16 @@ class LocalStore {
   }
 
   // --------------------------------------------------------------------------
+  //  TEMA  (modo claro / oscuro / sistema — preferencia visual del usuario)
+  //  Guarda solo una etiqueta: 'light' | 'dark' | 'system'. No toca la BD.
+  // --------------------------------------------------------------------------
+  static String temaModo() => _p?.getString('lozcam_tema') ?? 'system';
+
+  static Future<void> guardarTemaModo(String modo) async {
+    await _p?.setString('lozcam_tema', modo);
+  }
+
+  // --------------------------------------------------------------------------
   //  CACHÉ GENÉRICA  (por si acaso: guardar datos para uso offline)
   // --------------------------------------------------------------------------
   static Future<void> cacheGuardar(String clave, Object valor) async {
