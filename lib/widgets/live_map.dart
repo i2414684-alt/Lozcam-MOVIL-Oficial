@@ -48,6 +48,16 @@ class _LiveMapState extends State<LiveMap> {
 
   static const LatLng _fallback = LatLng(-12.0653, -75.2049); // Huancayo
 
+  /// La obra tiene coordenadas REALES y usables (no null, no (0,0), en rango).
+  /// Evita centrar el mapa en el océano (0,0) cuando la BD no trae coords.
+  bool get _hayObra => _coordValida(widget.obraLat, widget.obraLng);
+
+  static bool _coordValida(double? lat, double? lng) {
+    if (lat == null || lng == null) return false;
+    if (lat.abs() < 0.0001 && lng.abs() < 0.0001) return false; // (0,0)
+    return lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -63,7 +73,7 @@ class _LiveMapState extends State<LiveMap> {
     super.didUpdateWidget(old);
     // Si cambió la obra seleccionada, recentra el mapa hacia ella.
     if (old.obraLat != widget.obraLat || old.obraLng != widget.obraLng) {
-      if (_mapListo && widget.obraLat != null && widget.obraLng != null) {
+      if (_mapListo && _hayObra) {
         _map.move(LatLng(widget.obraLat!, widget.obraLng!), 16);
       }
     }
@@ -110,7 +120,10 @@ class _LiveMapState extends State<LiveMap> {
     if (!mounted) return;
     setState(() => _pos = pos);
     widget.onPosicion?.call(pos);
-    if (!_yaCentrado && _mapListo) {
+    // Solo auto-centrar en el usuario si NO hay una obra válida que mostrar.
+    // Si hay obra, el mapa permanece centrado en ella (la zona marcada) y el
+    // usuario puede usar el botón de recentrar para ir a su posición.
+    if (!_yaCentrado && _mapListo && !_hayObra) {
       _yaCentrado = true;
       _map.move(LatLng(pos.latitude, pos.longitude), 16);
     }
@@ -125,25 +138,22 @@ class _LiveMapState extends State<LiveMap> {
   }
 
   void _recentrar() {
-    if (_pos != null) {
-      _map.move(LatLng(_pos!.latitude, _pos!.longitude), 16);
-    } else if (widget.obraLat != null && widget.obraLng != null) {
+    // Prioriza la obra (la zona a marcar); si no hay, va a la posición del usuario.
+    if (_hayObra) {
       _map.move(LatLng(widget.obraLat!, widget.obraLng!), 16);
+    } else if (_pos != null) {
+      _map.move(LatLng(_pos!.latitude, _pos!.longitude), 16);
     }
   }
 
   double? get _distancia {
-    if (_pos == null || widget.obraLat == null || widget.obraLng == null) {
-      return null;
-    }
+    if (_pos == null || !_hayObra) return null;
     return Geolocator.distanceBetween(
         _pos!.latitude, _pos!.longitude, widget.obraLat!, widget.obraLng!);
   }
 
   LatLng get _centroInicial {
-    if (widget.obraLat != null && widget.obraLng != null) {
-      return LatLng(widget.obraLat!, widget.obraLng!);
-    }
+    if (_hayObra) return LatLng(widget.obraLat!, widget.obraLng!);
     if (_pos != null) return LatLng(_pos!.latitude, _pos!.longitude);
     return _fallback;
   }
@@ -162,7 +172,7 @@ class _LiveMapState extends State<LiveMap> {
 
   Widget _vistaMapa() {
     final dist = _distancia;
-    final hayObra = widget.obraLat != null && widget.obraLng != null;
+    final hayObra = _hayObra;
     return Stack(children: [
       FlutterMap(
         mapController: _map,
@@ -173,7 +183,11 @@ class _LiveMapState extends State<LiveMap> {
           maxZoom: 18,
           onMapReady: () {
             _mapListo = true;
-            if (_pos != null && !_yaCentrado) {
+            // Prioridad: la obra (zona marcada). Solo si no hay obra válida se
+            // centra en el usuario.
+            if (_hayObra) {
+              _map.move(LatLng(widget.obraLat!, widget.obraLng!), 16);
+            } else if (_pos != null && !_yaCentrado) {
               _yaCentrado = true;
               _map.move(LatLng(_pos!.latitude, _pos!.longitude), 16);
             }
@@ -223,10 +237,7 @@ class _LiveMapState extends State<LiveMap> {
           backgroundColor: Colors.white,
           foregroundColor: AppColors.primary,
           elevation: 2,
-          onPressed: (_pos == null &&
-                  (widget.obraLat == null || widget.obraLng == null))
-              ? null
-              : _recentrar,
+          onPressed: (_pos == null && !_hayObra) ? null : _recentrar,
           child: const Icon(Icons.my_location, size: 20),
         ),
       ),
@@ -281,7 +292,7 @@ class _LiveMapState extends State<LiveMap> {
 
   Widget _vistaError() {
     return Container(
-      color: AppColors.grayBg,
+      color: context.tokens.surfaceAlt,
       alignment: Alignment.center,
       padding: const EdgeInsets.all(16),
       child: Column(mainAxisSize: MainAxisSize.min, children: [

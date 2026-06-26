@@ -133,9 +133,9 @@ class _ChatSheetState extends State<_ChatSheet> {
                     padding: const EdgeInsets.only(right: 6),
                     child: ActionChip(
                       label: Text(s,
-                          style: const TextStyle(
-                              fontSize: 11, color: AppColors.orangeText)),
-                      backgroundColor: AppColors.orangeBg,
+                          style: TextStyle(
+                              fontSize: 11, color: context.tokens.brand)),
+                      backgroundColor: context.tokens.brandSoft,
                       side: BorderSide.none,
                       onPressed: _enviando ? null : () => _enviar(s),
                     ),

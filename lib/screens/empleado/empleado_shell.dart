@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../theme/colors.dart';
-import '../../theme/app_theme.dart';
 import '../../core/auth_service.dart';
+import '../../widgets/common.dart';
 import '../tutorial_overlay.dart';
 import 'empleado_dashboard.dart';
 import 'empleado_tareas.dart';
@@ -18,6 +18,29 @@ class EmpleadoShell extends StatefulWidget {
 class _EmpleadoShellState extends State<EmpleadoShell> {
   int _i = 0;
 
+  static const _items = [
+    AppBottomNavItem(
+        icon: Icons.home_outlined,
+        activeIcon: Icons.home,
+        label: 'Inicio'),
+    AppBottomNavItem(
+        icon: Icons.checklist_outlined,
+        activeIcon: Icons.checklist,
+        label: 'Tareas'),
+    AppBottomNavItem(
+        icon: Icons.fingerprint,
+        activeIcon: Icons.fingerprint,
+        label: 'Marcar'),
+    AppBottomNavItem(
+        icon: Icons.description_outlined,
+        activeIcon: Icons.description,
+        label: 'Informe'),
+    AppBottomNavItem(
+        icon: Icons.history_outlined,
+        activeIcon: Icons.history,
+        label: 'Historial'),
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -25,6 +48,7 @@ class _EmpleadoShellState extends State<EmpleadoShell> {
       if (mounted) mostrarTutorialSiPrimeraVez(context, AppArea.operativo);
     });
   }
+
   late final List<Widget> _pages = [
     EmpleadoDashboard(onMarcar: () => setState(() => _i = 2)),
     const EmpleadoTareas(),
@@ -37,21 +61,11 @@ class _EmpleadoShellState extends State<EmpleadoShell> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(index: _i, children: _pages),
-      bottomNavigationBar: BottomNavigationBar(
+      bottomNavigationBar: AppBottomNav(
         currentIndex: _i,
         onTap: (v) => setState(() => _i = v),
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: AppColors.empleado,
-        unselectedItemColor: context.tokens.textSecondary,
-        selectedFontSize: 10,
-        unselectedFontSize: 10,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Inicio'),
-          BottomNavigationBarItem(icon: Icon(Icons.checklist), label: 'Tareas'),
-          BottomNavigationBarItem(icon: Icon(Icons.fingerprint), label: 'Marcar'),
-          BottomNavigationBarItem(icon: Icon(Icons.description_outlined), label: 'Informe'),
-          BottomNavigationBarItem(icon: Icon(Icons.history), label: 'Historial'),
-        ],
+        items: _items,
+        roleColor: AppColors.roleEmpleado,
       ),
     );
   }

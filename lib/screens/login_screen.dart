@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../theme/colors.dart';
+import '../theme/app_theme.dart';
+import '../theme/tokens.dart';
+import '../theme/typography.dart';
 import '../theme/theme_controller.dart';
 import '../core/auth_service.dart';
 import '../core/local_store.dart';
 import '../core/supabase_client.dart';
+import '../widgets/common.dart';
 import 'shell_router.dart';
 
-/// Oscurece un color (para los degradados corporativos).
 Color _darken(Color c, [double amount = 0.15]) {
   final hsl = HSLColor.fromColor(c);
   return hsl.withLightness((hsl.lightness - amount).clamp(0.0, 1.0)).toColor();
 }
 
-/// Pantalla de inicio de sesión (rediseño moderno).
-/// Conserva toda la lógica: selector de panel + validación, mostrar/ocultar
-/// contraseña, probar conexión y cuentas locales.
+/// Pantalla de inicio de sesión — rediseño con tokens, sin colores hardcodeados.
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -25,20 +25,24 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _email = TextEditingController();
-  final _pass = TextEditingController();
-  AppArea _panel = AppArea.operativo;
-  bool _cargando = false;
-  bool _verPass = false;
+  final _pass  = TextEditingController();
+  AppArea _panel   = AppArea.operativo;
+  bool _cargando   = false;
+  bool _verPass    = false;
   bool _verCuentas = false;
   String? _error;
 
   static const _opciones = <(AppArea, String, IconData, Color)>[
-    (AppArea.gerencia, 'Gerencia', Icons.admin_panel_settings_outlined,
-        AppColors.admin),
-    (AppArea.operativo, 'Trabajador', Icons.engineering_outlined,
-        AppColors.empleado),
-    (AppArea.cliente, 'Cliente', Icons.business_outlined, AppColors.cliente),
+    (AppArea.gerencia,  'Gerencia',    Icons.admin_panel_settings_outlined, AppColors.roleAdmin),
+    (AppArea.operativo, 'Trabajador',  Icons.engineering_outlined,          AppColors.roleEmpleado),
+    (AppArea.cliente,   'Cliente',     Icons.business_outlined,             AppColors.roleCliente),
   ];
+
+  Color get _rolColor => switch (_panel) {
+        AppArea.gerencia  => AppColors.roleAdmin,
+        AppArea.operativo => AppColors.roleEmpleado,
+        AppArea.cliente   => AppColors.roleCliente,
+      };
 
   @override
   void dispose() {
@@ -51,7 +55,7 @@ class _LoginScreenState extends State<LoginScreen> {
     FocusScope.of(context).unfocus();
     setState(() {
       _cargando = true;
-      _error = null;
+      _error    = null;
     });
     try {
       final user = await AuthService.instance
@@ -74,75 +78,87 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _probarConexion() async {
     final ok = await probarConexion();
     if (!mounted) return;
+    final t = context.tokens;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(ok
           ? '✓ Conectado a la base de datos'
           : '✗ Sin conexión a la base de datos'),
-      backgroundColor: ok ? AppColors.greenText : AppColors.redText,
+      backgroundColor: ok ? t.success : t.danger,
     ));
   }
 
   @override
   Widget build(BuildContext context) {
+    final t    = context.tokens;
     final nube = AuthService.instance.modoNube;
+    final brightness = Theme.of(context).brightness;
+
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFFFFF4EC), Color(0xFFF5F5F7)],
-          ),
-        ),
-        child: SafeArea(
-          child: Stack(
-            children: [
-              const Align(
-                alignment: Alignment.topRight,
-                child: Padding(
-                  padding: EdgeInsets.only(right: 8, top: 4),
-                  child: ThemeToggleButton(color: AppColors.textMuted),
-                ),
-              ),
-              Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 420),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _logo(),
-                    const SizedBox(height: 18),
-                    Text('Lozcam',
-                        style: GoogleFonts.poppins(
-                            fontSize: 30,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.textDark,
-                            letterSpacing: -0.5)),
-                    const SizedBox(height: 2),
-                    Text('Sistema de Gestión de Obras',
-                        style: GoogleFonts.poppins(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.textMuted)),
-                    const SizedBox(height: 26),
-                    _tarjeta(),
-                    const SizedBox(height: 18),
-                    _pie(nube),
+      backgroundColor: t.appBg,
+      body: Stack(
+        children: [
+          // Gradiente sutil en el 35% superior
+          Positioned(
+            top: 0, left: 0, right: 0,
+            height: MediaQuery.of(context).size.height * 0.35,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    t.brandSoft,
+                    t.appBg,
                   ],
                 ),
               ),
             ),
           ),
-            ],
+          // Botón tema
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 4,
+            right: 8,
+            child: const ThemeToggleButton(),
           ),
-        ),
+          // Contenido principal
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.xl, vertical: AppSpacing.xxl),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _logo(t),
+                      const SizedBox(height: AppSpacing.lg),
+                      Text('Lozcam',
+                          style: TextStyle(
+                              fontSize: 30,
+                              fontWeight: FontWeight.w800,
+                              color: t.textPrimary,
+                              letterSpacing: -0.5,
+                              fontFamily: 'Poppins')),
+                      const SizedBox(height: 2),
+                      Text('Sistema de Gestión de Obras',
+                          style: context.text.caption),
+                      const SizedBox(height: AppSpacing.xl),
+                      _tarjeta(t, brightness),
+                      const SizedBox(height: AppSpacing.lg),
+                      _pie(nube, t),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _logo() {
+  Widget _logo(AppTokens t) {
     return Container(
       width: 78,
       height: 78,
@@ -151,51 +167,47 @@ class _LoginScreenState extends State<LoginScreen> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [AppColors.primary, _darken(AppColors.primary, 0.18)],
+          colors: [AppColors.brand, _darken(AppColors.brand, 0.18)],
         ),
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(AppRadius.xl),
         boxShadow: [
           BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.35),
+              color: AppColors.brand.withValues(alpha: 0.35),
               blurRadius: 18,
               offset: const Offset(0, 8)),
         ],
       ),
       child: Text('L',
-          style: GoogleFonts.poppins(
-              fontSize: 36, fontWeight: FontWeight.w800, color: Colors.white)),
+          style: TextStyle(
+              fontSize: 36,
+              fontWeight: FontWeight.w800,
+              color: t.onBrand,
+              fontFamily: 'Poppins')),
     );
   }
 
-  Widget _tarjeta() {
+  Widget _tarjeta(AppTokens t, Brightness brightness) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(22),
+      padding: const EdgeInsets.all(AppSpacing.xl),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 24,
-              offset: const Offset(0, 10)),
-        ],
+        color: t.surface,
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        border: Border.all(color: t.border, width: 0.5),
+        boxShadow: AppShadows.md(brightness),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Ingresar como',
-            style: GoogleFonts.poppins(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textSoft)),
-        const SizedBox(height: 8),
+        Text('Ingresar como', style: context.text.overline),
+        const SizedBox(height: AppSpacing.sm),
+        // Selector de panel
         Row(
           children: [
             for (final o in _opciones)
-              Expanded(child: _opcionPanel(o.$1, o.$2, o.$3, o.$4)),
+              Expanded(child: _opcionPanel(o.$1, o.$2, o.$3, o.$4, t)),
           ],
         ),
-        const SizedBox(height: 18),
-        _Field(
+        const SizedBox(height: AppSpacing.lg),
+        _LoginField(
           controller: _email,
           label: 'Correo electrónico',
           hint: 'usuario@lozcam.pe',
@@ -203,8 +215,8 @@ class _LoginScreenState extends State<LoginScreen> {
           keyboardType: TextInputType.emailAddress,
           enabled: !_cargando,
         ),
-        const SizedBox(height: 14),
-        _Field(
+        const SizedBox(height: AppSpacing.md),
+        _LoginField(
           controller: _pass,
           label: 'Contraseña',
           hint: '••••••••',
@@ -213,36 +225,53 @@ class _LoginScreenState extends State<LoginScreen> {
           enabled: !_cargando,
           onSubmitted: (_) => _ingresar(),
           suffix: IconButton(
+            tooltip: _verPass ? 'Ocultar contraseña' : 'Mostrar contraseña',
             icon: Icon(
                 _verPass
                     ? Icons.visibility_off_outlined
                     : Icons.visibility_outlined,
                 size: 20,
-                color: AppColors.textMuted),
+                color: t.textSecondary),
             onPressed: () => setState(() => _verPass = !_verPass),
           ),
         ),
-        if (_error != null) ...[
-          const SizedBox(height: 14),
-          _ErrorBanner(_error!),
-        ],
-        const SizedBox(height: 20),
-        _GradientButton(
-          cargando: _cargando,
-          onTap: _cargando ? null : _ingresar,
+        // Banner de error animado
+        AnimatedSwitcher(
+          duration: AppMotion.base,
+          switchInCurve: AppMotion.emphasized,
+          child: _error != null
+              ? Padding(
+                  key: const ValueKey('error'),
+                  padding: const EdgeInsets.only(top: AppSpacing.md),
+                  child: _ErrorBanner(_error!),
+                )
+              : const SizedBox.shrink(key: ValueKey('no-error')),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        SizedBox(
+          width: double.infinity,
+          child: PrimaryButton(
+            label: 'Ingresar',
+            onPressed: _cargando ? null : _ingresar,
+            loading: _cargando,
+            color: _rolColor,
+          ),
         ),
       ]),
     );
   }
 
-  Widget _opcionPanel(AppArea area, String label, IconData icon, Color color) {
+  Widget _opcionPanel(
+      AppArea area, String label, IconData icon, Color color, AppTokens t) {
     final sel = _panel == area;
     return GestureDetector(
       onTap: _cargando ? null : () => setState(() => _panel = area),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        margin: const EdgeInsets.symmetric(horizontal: 4),
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+        duration: AppMotion.base,
+        curve: AppMotion.emphasized,
+        margin: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+        padding: const EdgeInsets.symmetric(
+            vertical: AppSpacing.md, horizontal: AppSpacing.xs),
         decoration: BoxDecoration(
           gradient: sel
               ? LinearGradient(
@@ -250,10 +279,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   end: Alignment.bottomRight,
                   colors: [color, _darken(color, 0.18)])
               : null,
-          color: sel ? null : const Color(0xFFFAFAFB),
-          borderRadius: BorderRadius.circular(12),
-          border:
-              sel ? null : Border.all(color: AppColors.border, width: 1),
+          color: sel ? null : t.surfaceAlt,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          border: sel
+              ? null
+              : Border.all(color: t.border, width: 1),
           boxShadow: sel
               ? [
                   BoxShadow(
@@ -264,144 +294,102 @@ class _LoginScreenState extends State<LoginScreen> {
               : null,
         ),
         child: Column(children: [
-          Icon(icon, size: 21, color: sel ? Colors.white : AppColors.textMuted),
-          const SizedBox(height: 5),
+          Icon(icon,
+              size: 21,
+              color: sel ? t.onBrand : t.textSecondary),
+          const SizedBox(height: AppSpacing.xs),
           Text(label,
-              style: GoogleFonts.poppins(
+              style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
-                  color: sel ? Colors.white : AppColors.textSoft)),
+                  color: sel ? t.onBrand : t.textSecondary)),
         ]),
       ),
     );
   }
 
-  Widget _pie(bool nube) {
+  Widget _pie(bool nube, AppTokens t) {
     return Column(children: [
-      Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+      Row(mainAxisSize: MainAxisSize.min, children: [
         Icon(nube ? Icons.cloud_done_outlined : Icons.smartphone,
-            size: 13, color: AppColors.textMuted),
-        const SizedBox(width: 5),
-        Text(
-            nube
-                ? 'Acceso protegido · Supabase'
-                : 'Modo sin conexión · Memoria interna',
-            style: GoogleFonts.poppins(
-                fontSize: 11, color: AppColors.textMuted)),
+            size: 13, color: t.textSecondary),
+        const SizedBox(width: AppSpacing.xs),
+        Flexible(
+          child: Text(
+              nube
+                  ? 'Acceso protegido · Supabase'
+                  : 'Modo sin conexión · Memoria interna',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: context.text.caption),
+        ),
       ]),
       if (nube)
-        TextButton(
+        OutlinedButton.icon(
           onPressed: _probarConexion,
-          child: Text('Probar conexión',
-              style: GoogleFonts.poppins(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.primary)),
+          icon: const Icon(Icons.wifi_tethering_outlined, size: 16),
+          label: const Text('Probar conexión'),
+          style: OutlinedButton.styleFrom(
+              minimumSize: const Size(0, 36),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.lg, vertical: AppSpacing.xs)),
         ),
-      if (!nube) _ayudaCuentasLocales(),
+      if (!nube) _ayudaCuentasLocales(t),
     ]);
   }
 
-  /// En modo memoria interna, ayuda a ingresar mostrando las cuentas locales.
-  Widget _ayudaCuentasLocales() {
+  Widget _ayudaCuentasLocales(AppTokens t) {
     return Column(children: [
       TextButton(
         onPressed: () => setState(() => _verCuentas = !_verCuentas),
-        child: Text(_verCuentas ? 'Ocultar cuentas' : 'Ver cuentas disponibles',
-            style: GoogleFonts.poppins(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: AppColors.primary)),
+        child: Text(_verCuentas ? 'Ocultar cuentas' : 'Ver cuentas disponibles'),
       ),
-      if (_verCuentas)
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.border, width: 1)),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (final u in LocalStore.usuarios())
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 3),
-                  child: GestureDetector(
-                    onTap: () => setState(() {
-                      _email.text = u['email'] as String;
-                      _pass.text = (u['password'] ?? '') as String;
-                      _panel = areaDeRol('${u['rol']}');
-                    }),
-                    child: Text('${u['email']}  ·  ${u['password']}',
-                        style: const TextStyle(
-                            fontSize: 11, color: AppColors.textSoft)),
-                  ),
+      AnimatedSwitcher(
+        duration: AppMotion.base,
+        child: _verCuentas
+            ? Container(
+                key: const ValueKey('cuentas'),
+                width: double.infinity,
+                padding: const EdgeInsets.all(AppSpacing.md),
+                decoration: BoxDecoration(
+                    color: t.surface,
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    border: Border.all(color: t.border, width: 1)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (final u in LocalStore.usuarios())
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                            vertical: AppSpacing.xs - 1),
+                        child: GestureDetector(
+                          onTap: () => setState(() {
+                            _email.text = u['email'] as String;
+                            _pass.text  = (u['password'] ?? '') as String;
+                            _panel      = areaDeRol('${u['rol']}');
+                          }),
+                          child: Text(
+                            '${u['email']}  ·  ${u['password']}',
+                            style: context.text.caption,
+                          ),
+                        ),
+                      ),
+                    const SizedBox(height: AppSpacing.xs),
+                    Text('Toca una cuenta para autocompletar.',
+                        style: TextStyle(
+                            fontSize: 10, color: t.textSecondary)),
+                  ],
                 ),
-              const SizedBox(height: 4),
-              const Text('Toca una cuenta para autocompletar.',
-                  style: TextStyle(fontSize: 10, color: AppColors.textMuted)),
-            ],
-          ),
-        ),
+              )
+            : const SizedBox.shrink(key: ValueKey('no-cuentas')),
+      ),
     ]);
   }
 }
 
-/// Botón premium con degradado corporativo y sombra.
-class _GradientButton extends StatelessWidget {
-  final VoidCallback? onTap;
-  final bool cargando;
-  const _GradientButton({required this.onTap, required this.cargando});
+// ── Campos de texto del login ─────────────────────────────────────────────────
 
-  @override
-  Widget build(BuildContext context) {
-    final activo = onTap != null && !cargando;
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-          colors: [AppColors.primary, _darken(AppColors.primary, 0.2)],
-        ),
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: activo
-            ? [
-                BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.4),
-                    blurRadius: 14,
-                    offset: const Offset(0, 6))
-              ]
-            : null,
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(14),
-          onTap: onTap,
-          child: Container(
-            height: 52,
-            alignment: Alignment.center,
-            child: cargando
-                ? const SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2.4, color: Colors.white))
-                : Text('Ingresar',
-                    style: GoogleFonts.poppins(
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700)),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _Field extends StatelessWidget {
+class _LoginField extends StatelessWidget {
   final TextEditingController controller;
   final String label, hint;
   final IconData icon;
@@ -409,13 +397,14 @@ class _Field extends StatelessWidget {
   final TextInputType? keyboardType;
   final Widget? suffix;
   final ValueChanged<String>? onSubmitted;
-  const _Field({
+
+  const _LoginField({
     required this.controller,
     required this.label,
     required this.hint,
     required this.icon,
-    this.obscure = false,
-    this.enabled = true,
+    this.obscure    = false,
+    this.enabled    = true,
     this.keyboardType,
     this.suffix,
     this.onSubmitted,
@@ -423,64 +412,56 @@ class _Field extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label,
-          style: GoogleFonts.poppins(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textSoft)),
-      const SizedBox(height: 6),
+      Text(label, style: context.text.caption),
+      const SizedBox(height: AppSpacing.sm - 2),
       TextField(
         controller: controller,
         obscureText: obscure,
         enabled: enabled,
         keyboardType: keyboardType,
-        style: GoogleFonts.poppins(fontSize: 14, color: AppColors.textDark),
-        textInputAction: obscure ? TextInputAction.done : TextInputAction.next,
+        style: TextStyle(fontSize: 14, color: t.textPrimary),
+        textInputAction:
+            obscure ? TextInputAction.done : TextInputAction.next,
         onSubmitted: onSubmitted,
         decoration: InputDecoration(
           hintText: hint,
-          isDense: true,
-          filled: true,
-          fillColor: const Color(0xFFF5F5F7),
-          prefixIcon: Icon(icon, size: 20, color: AppColors.textMuted),
+          prefixIcon: Icon(icon, size: 20, color: t.textSecondary),
           suffixIcon: suffix,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
-          enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: Color(0xFFE8E8EC), width: 1)),
-          focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: AppColors.primary, width: 1.6)),
-          disabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: Color(0xFFE8E8EC), width: 1)),
         ),
       ),
     ]);
   }
 }
 
+// ── Banner de error ───────────────────────────────────────────────────────────
+
 class _ErrorBanner extends StatelessWidget {
   final String mensaje;
   const _ErrorBanner(this.mensaje);
+
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md, vertical: AppSpacing.sm + 2),
       decoration: BoxDecoration(
-          color: AppColors.redBg,
-          borderRadius: BorderRadius.circular(12),
-          border: const Border.fromBorderSide(
-              BorderSide(color: Color(0xFFF4C0C0), width: 0.5))),
+          color: t.dangerSoft,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          border: Border.all(
+              color: t.danger.withValues(alpha: .25), width: 0.5)),
       child: Row(children: [
-        const Icon(Icons.error_outline, size: 18, color: AppColors.redText),
-        const SizedBox(width: 8),
+        Icon(Icons.error_outline, size: 18, color: t.danger),
+        const SizedBox(width: AppSpacing.sm),
         Expanded(
           child: Text(mensaje,
-              style: const TextStyle(fontSize: 12, color: AppColors.redText)),
+              style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: t.danger)),
         ),
       ]),
     );

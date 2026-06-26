@@ -23,12 +23,26 @@ Future<String> construirContextoMonitoreo() async {
   final nombrePorId = {for (final p in personal) p.id: p.nombre};
   final presentes = asistHoy.map((r) => '${r['perfil_id']}').toSet();
 
+  // Asistencia GLOBAL de hoy (independiente de que existan asignaciones).
+  // Garantiza poder responder "¿cuántos faltaron hoy?" aunque la tabla
+  // `asignaciones` esté vacía o el RLS no la deje leer.
+  final presentesNombres =
+      presentes.map((id) => nombrePorId[id] ?? 'ID:$id').toList();
+  final ausentesPersonal =
+      personal.where((p) => !presentes.contains(p.id)).toList();
+
   final sb = StringBuffer();
   sb.writeln('Fecha de hoy: $hoy');
   sb.writeln('Total de personal: ${personal.length}');
   sb.writeln(
       'Tareas abiertas: ${tareas.where((t) => t.estado != 'completada').length} '
       '(de ${tareas.length} totales)');
+  sb.writeln('');
+  sb.writeln('ASISTENCIA DE HOY (resumen global):');
+  sb.writeln('- Presentes hoy: ${presentes.length}'
+      '${presentesNombres.isEmpty ? '' : ' [${presentesNombres.join(', ')}]'}');
+  sb.writeln('- Faltaron hoy: ${ausentesPersonal.length}'
+      '${ausentesPersonal.isEmpty ? '' : ' [${ausentesPersonal.map((p) => p.nombre).join(', ')}]'}');
   sb.writeln('');
   sb.writeln('OBRAS (asistencia de hoy y avance):');
 

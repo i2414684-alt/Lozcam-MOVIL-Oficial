@@ -85,8 +85,25 @@ Future<void> guardarArea({
 
 Future<void> eliminarArea(int id) => LocalStore.eliminarArea(id);
 
+/// Convierte a double tolerando `num`, `String` (PostgREST devuelve los
+/// `numeric` como String para no perder precisión) o `null`.
+double _aDouble(dynamic v, [double def = 0]) {
+  if (v is num) return v.toDouble();
+  if (v is String) return double.tryParse(v.trim()) ?? def;
+  return def;
+}
+
+/// Convierte a int tolerando `num`, `String` o `null`.
+int _aInt(dynamic v, int def) {
+  if (v is num) return v.toInt();
+  if (v is String) {
+    return int.tryParse(v.trim()) ?? double.tryParse(v.trim())?.toInt() ?? def;
+  }
+  return def;
+}
+
 Obra _obraDesdeArea(Map<String, dynamic> a) => Obra(
-      (a['id'] as num).toInt(),
+      _aInt(a['id'], 0),
       (a['nombre'] ?? 'Área') as String,
       'Área',
       '',
@@ -94,14 +111,14 @@ Obra _obraDesdeArea(Map<String, dynamic> a) => Obra(
       0,
       '',
       (a['direccion'] ?? '') as String,
-      (a['lat'] as num).toDouble(),
-      (a['lng'] as num).toDouble(),
+      _aDouble(a['lat']),
+      _aDouble(a['lng']),
       'orange',
-      radioMetros: (a['radio'] as num?)?.toInt() ?? 200,
+      radioMetros: _aInt(a['radio'], 200),
     );
 
 Obra _obraDesdeRow(Map<String, dynamic> r) => Obra(
-      (r['id'] as num).toInt(),
+      _aInt(r['id'], 0),
       (r['nombre'] ?? 'Obra') as String,
       '',
       '',
@@ -109,8 +126,8 @@ Obra _obraDesdeRow(Map<String, dynamic> r) => Obra(
       0,
       '',
       (r['direccion'] ?? '') as String,
-      (r['latitud'] as num?)?.toDouble() ?? 0,
-      (r['longitud'] as num?)?.toDouble() ?? 0,
+      _aDouble(r['latitud']),
+      _aDouble(r['longitud']),
       'blue',
-      radioMetros: (r['radio_metros'] as num?)?.toInt() ?? 200,
+      radioMetros: _aInt(r['radio_metros'], 200),
     );

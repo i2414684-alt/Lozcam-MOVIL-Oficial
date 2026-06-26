@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../theme/colors.dart';
 import '../../theme/app_theme.dart';
+import '../../theme/tokens.dart';
 import '../../widgets/common.dart';
 import '../../models/models.dart';
 import '../../core/asistencia_service.dart';
@@ -47,8 +48,16 @@ class _AdminAsistenciasState extends State<AdminAsistencias> {
       .toSet()
       .length;
 
+  /// Hay obras pero NO se pudo leer ninguna asignación ni asistencia: muy
+  /// probablemente el RLS de la BD no deja leer esas tablas a gerencia.
+  bool get _sospechaSinPermisos =>
+      _obras.isNotEmpty &&
+      _conteo.values.fold<int>(0, (a, b) => a + b) == 0 &&
+      _asistHoy.isEmpty;
+
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     final tareas = todasLasTareas();
     final abiertas = tareas.where((t) => t.estado != 'completada').length;
     final presentesHoy = _asistHoy.map((r) => r['perfil_id']).toSet().length;
@@ -57,31 +66,50 @@ class _AdminAsistenciasState extends State<AdminAsistencias> {
       const PanelHeader(
           title: 'Monitor',
           subtitle: 'Asistencia y tareas por área',
-          color: AppColors.admin,
+          color: AppColors.roleAdmin,
           icon: Icons.insights_outlined),
       Expanded(
         child: RefreshIndicator(
           onRefresh: _cargar,
           child: ListView(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(AppSpacing.md),
             physics: const AlwaysScrollableScrollPhysics(),
             children: [
+              // KPIs
               Row(children: [
-                StatCard('${_obras.length}', 'Obras', color: AppColors.admin),
-                const SizedBox(width: 8),
-                StatCard('$abiertas', 'Tareas abiertas',
-                    color: AppColors.warning),
-                const SizedBox(width: 8),
-                StatCard('$presentesHoy', 'Presentes hoy',
-                    color: AppColors.success),
+                Expanded(
+                  child: StatTile(
+                    label: 'Obras',
+                    value: '${_obras.length}',
+                    accentColor: AppColors.roleAdmin,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: StatTile(
+                    label: 'Tareas abiertas',
+                    value: '$abiertas',
+                    accentColor: t.warning,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: StatTile(
+                    label: 'Presentes hoy',
+                    value: '$presentesHoy',
+                    accentColor: t.success,
+                  ),
+                ),
               ]),
-              const SizedBox(height: 10),
+              const SizedBox(height: AppSpacing.sm),
+
+              // Aviso de posible bloqueo por permisos (RLS).
+              if (!_cargando && _sospechaSinPermisos) _avisoSinPermisos(t),
+
               _tareasPorEstado(tareas),
+
               if (_cargando)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 30),
-                  child: Center(child: CircularProgressIndicator()),
-                )
+                const SkeletonList(count: 2)
               else
                 _porArea(),
             ],
@@ -91,34 +119,65 @@ class _AdminAsistenciasState extends State<AdminAsistencias> {
     ]);
   }
 
+  Widget _avisoSinPermisos(AppTokens t) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: t.warningSoft,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: t.warning.withValues(alpha: .3), width: 0.5),
+      ),
+      child: Row(children: [
+        Icon(Icons.info_outline, size: 18, color: t.warning),
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(
+          child: Text(
+            'Hay obras pero no se leyeron asignaciones ni asistencias. '
+            'Revisa los permisos (RLS) de la base de datos para gerencia.',
+            style: TextStyle(
+                fontSize: 12, fontWeight: FontWeight.w500, color: t.warning),
+          ),
+        ),
+      ]),
+    );
+  }
+
   Widget _tareasPorEstado(List<TareaAsignada> tareas) {
-    int n(String e) => tareas.where((t) => t.estado == e).length;
+    final t = context.tokens;
+    int n(String e) => tareas.where((x) => x.estado == e).length;
     return AppCard(
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         const CardTitle('Tareas por estado'),
         if (tareas.isEmpty)
-          Text('Aún no hay tareas delegadas.',
-              style: TextStyle(fontSize: 12, color: context.tokens.textSecondary))
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
+            child: EmptyState(
+              icon: Icons.checklist_outlined,
+              title: 'Sin tareas delegadas',
+              description: 'Aquí verás el estado de las tareas del equipo.',
+            ),
+          )
         else
           Row(children: [
-            _mini(n('pendiente'), 'Pendientes', 'gray'),
-            _mini(n('en_progreso'), 'En progreso', 'blue'),
-            _mini(n('completada'), 'Completadas', 'green'),
+            _mini(n('pendiente'), 'Pendientes', t.textSecondary),
+            _mini(n('en_progreso'), 'En progreso', t.brand),
+            _mini(n('completada'), 'Completadas', t.success),
           ]),
       ]),
     );
   }
 
-  Widget _mini(int valor, String label, String tone) {
-    final p = tonePair(tone);
+  Widget _mini(int valor, String label, Color color) {
     return Expanded(
       child: Column(children: [
         Text('$valor',
             style: TextStyle(
-                fontSize: 20, fontWeight: FontWeight.w700, color: p.fg)),
+                fontSize: 22, fontWeight: FontWeight.w700, color: color)),
         Text(label,
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 10, color: context.tokens.textSecondary)),
+            style: TextStyle(
+                fontSize: 10, color: context.tokens.textSecondary)),
       ]),
     );
   }
@@ -128,8 +187,14 @@ class _AdminAsistenciasState extends State<AdminAsistencias> {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         const CardTitle('Por obra'),
         if (_obras.isEmpty)
-          Text('No hay obras activas.',
-              style: TextStyle(fontSize: 12, color: context.tokens.textSecondary))
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
+            child: EmptyState(
+              icon: Icons.business_outlined,
+              title: 'Sin obras activas',
+              description: 'No se pudieron leer obras de la base de datos.',
+            ),
+          )
         else
           for (final o in _obras) _filaArea(o),
       ]),
@@ -137,31 +202,34 @@ class _AdminAsistenciasState extends State<AdminAsistencias> {
   }
 
   Widget _filaArea(Obra o) {
+    final t = context.tokens;
     final asignados = _conteo[o.id] ?? 0;
     final presentes = _presentesEn(o.id);
     final tone = asignados == 0
-        ? 'gray'
+        ? BadgeTone.neutral
         : presentes >= asignados
-            ? 'green'
+            ? BadgeTone.success
             : presentes == 0
-                ? 'red'
-                : 'amber';
+                ? BadgeTone.danger
+                : BadgeTone.warning;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 7),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm - 1),
       child: Row(children: [
         Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(o.nombre,
-                style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: context.tokens.textPrimary)),
-            Text('$asignados asignado(s)',
-                style:
-                    TextStyle(fontSize: 11, color: context.tokens.textSecondary)),
-          ]),
+          child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(o.nombre,
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: t.textPrimary)),
+                Text('$asignados asignado(s)',
+                    style: TextStyle(
+                        fontSize: 11, color: t.textSecondary)),
+              ]),
         ),
-        AppBadge('$presentes/$asignados hoy', tone: tone),
+        AppBadge('$presentes/$asignados hoy', badgeTone: tone),
       ]),
     );
   }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../theme/colors.dart';
 import '../../theme/app_theme.dart';
+import '../../theme/tokens.dart';
 import '../../widgets/common.dart';
 import '../../models/models.dart';
 import '../../core/auth_service.dart';
@@ -28,69 +29,73 @@ class _ClienteDashboardState extends State<ClienteDashboard> {
     final o = await obraDelCliente();
     if (!mounted) return;
     setState(() {
-      _obra = o;
+      _obra     = o;
       _cargando = false;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final u = AuthService.instance.session;
+    final t    = context.tokens;
+    final u    = AuthService.instance.session;
     final obra = _obra;
 
     return Column(children: [
       PanelHeader(
-          title: u?.nombre ?? 'Cliente',
+          title:    u?.nombre ?? 'Cliente',
           subtitle: 'Mi proyecto',
-          color: AppColors.cliente,
-          icon: Icons.business_outlined,
+          color:    AppColors.roleCliente,
+          icon:     Icons.business_outlined,
           onLogout: () => cerrarSesionYSalir(context)),
       Expanded(
         child: RefreshIndicator(
           onRefresh: _cargar,
           child: ListView(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(AppSpacing.md),
             physics: const AlwaysScrollableScrollPhysics(),
             children: [
               if (_cargando)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 40),
-                  child: Center(child: CircularProgressIndicator()),
-                )
+                const SkeletonList()
               else if (obra == null)
-                AppCard(
-                  child: IconRow(
-                      icon: Icons.business_outlined,
-                      iconColor: context.tokens.textSecondary,
-                      title: 'Aún no hay un proyecto registrado',
-                      subtitle: 'Aparecerá cuando el sistema lo asigne.'),
+                const Padding(
+                  padding: EdgeInsets.only(top: AppSpacing.xxxl),
+                  child: EmptyState(
+                    icon: Icons.business_outlined,
+                    title: 'Sin proyecto asignado',
+                    description:
+                        'Aparecerá aquí cuando el sistema lo registre.',
+                  ),
                 )
               else ...[
-                AppCard(
-                  color: AppColors.greenBg,
-                  borderColor: const Color(0xFF9FE1CB),
+                // Hero: tarjeta del proyecto
+                AppCard.tonal(
+                  seed: AppColors.roleCliente,
                   child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const CardTitle('Mi proyecto'),
                         Text(obra.nombre,
-                            style: const TextStyle(
-                                fontSize: 16,
+                            style: TextStyle(
+                                fontSize: 18,
                                 fontWeight: FontWeight.w700,
-                                color: AppColors.textDark)),
-                        const SizedBox(height: 4),
+                                letterSpacing: -0.2,
+                                color: t.textPrimary)),
+                        const SizedBox(height: AppSpacing.sm - 2),
                         Row(children: [
                           const Icon(Icons.verified_outlined,
-                              size: 15, color: AppColors.cliente),
-                          const SizedBox(width: 4),
+                              size: 15,
+                              color: AppColors.roleCliente),
+                          const SizedBox(width: AppSpacing.xs),
                           Text(labelEstadoObra(obra.estado),
                               style: const TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
-                                  color: AppColors.cliente)),
+                                  color: AppColors.roleCliente)),
                         ]),
                       ]),
                 ),
+
+                // Ubicación
                 AppCard(
                   child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -98,13 +103,23 @@ class _ClienteDashboardState extends State<ClienteDashboard> {
                         const CardTitle('Ubicación'),
                         IconRow(
                             icon: Icons.place_outlined,
-                            iconColor: AppColors.primary,
+                            iconColor: AppColors.brand,
                             title: obra.direccion.isNotEmpty
                                 ? obra.direccion
                                 : 'Dirección no registrada',
                             subtitle:
-                                '${obra.lat.toStringAsFixed(5)}, ${obra.lng.toStringAsFixed(5)}'),
+                                '${obra.lat.toStringAsFixed(5)}, '
+                                '${obra.lng.toStringAsFixed(5)}'),
                       ]),
+                ),
+
+                // Mapa placeholder
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
+                  child: MapPlaceholder(
+                    label: obra.nombre,
+                    height: MediaQuery.of(context).size.height * 0.28,
+                  ),
                 ),
               ],
             ],

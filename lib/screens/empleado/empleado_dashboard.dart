@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../theme/colors.dart';
 import '../../theme/app_theme.dart';
+import '../../theme/tokens.dart';
+import '../../theme/typography.dart';
 import '../../widgets/common.dart';
 import '../../models/models.dart';
 import '../../core/auth_service.dart';
@@ -17,148 +20,179 @@ class EmpleadoDashboard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final u = AuthService.instance.session;
+    final u   = AuthService.instance.session;
     final saludo = u == null ? 'Buen día' : 'Buen día, ${u.primerNombre}';
-    final rol = u?.rolNombre ?? 'Empleado';
+    final rol    = u?.rolNombre ?? 'Empleado';
     final rolClave = u?.rol ?? '';
-    final id = u?.id ?? '';
+    final id     = u?.id ?? '';
 
     final asignadas = areasDeTrabajador(id);
-    final areas =
+    final areas     =
         areasLocales().where((o) => asignadas.contains(o.id)).toList();
     final Obra? obra = areas.isNotEmpty ? areas.first : null;
 
-    final tareas = tareasParaPersona(rolClave, id);
+    final tareas     = tareasParaPersona(rolClave, id);
     final pendientes = tareas.where((t) => t.estado != 'completada').toList();
 
-    final hist = AsistenciaService.instance.historialLocal();
-    final dias = hist.map((r) => r['fecha']).toSet().length;
+    final hist    = AsistenciaService.instance.historialLocal();
+    final dias    = hist.map((r) => r['fecha']).toSet().length;
     final entradas = hist.where((r) => r['tipo'] == 'entrada').length;
-    final salidas = hist.where((r) => r['tipo'] == 'salida').length;
+    final salidas  = hist.where((r) => r['tipo'] == 'salida').length;
 
     return Column(children: [
       PanelHeader(
-          title: saludo,
+          title:    saludo,
           subtitle: rol,
-          color: AppColors.empleado,
-          icon: Icons.handyman_outlined,
+          color:    AppColors.roleEmpleado,
+          icon:     Icons.handyman_outlined,
           onLogout: () => cerrarSesionYSalir(context)),
       Expanded(
-        child: ListView(padding: const EdgeInsets.all(12), children: [
-          // Obra asignada
-          AppCard(
-            color: AppColors.blueBg,
-            borderColor: const Color(0xFFB5D4F4),
-            child: Row(children: [
-              const Icon(Icons.business_outlined,
-                  color: AppColors.empleado, size: 22),
-              const SizedBox(width: 10),
+        child: ListView(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          children: [
+            // ── Hero: obra asignada ─────────────────────────────────────────
+            AppCard.tonal(
+              seed: AppColors.roleEmpleado,
+              child: Row(children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color:
+                        AppColors.roleEmpleado.withValues(alpha: .12),
+                    borderRadius:
+                        BorderRadius.circular(AppRadius.md),
+                  ),
+                  child: const Icon(Icons.business_outlined,
+                      color: AppColors.roleEmpleado, size: 22),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Obra asignada',
+                            style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.roleEmpleado)),
+                        const SizedBox(height: 2),
+                        Text(obra?.nombre ?? 'Sin área asignada',
+                            style: context.text.bodyStrong),
+                        if (obra != null && obra.direccion.isNotEmpty)
+                          Text(obra.direccion,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: context.text.caption),
+                      ]),
+                ),
+              ]),
+            ),
+
+            // ── Estadísticas de asistencia ──────────────────────────────────
+            Row(children: [
               Expanded(
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Obra asignada',
-                          style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.empleado)),
-                      const SizedBox(height: 2),
-                      Text(obra?.nombre ?? 'Sin área asignada',
-                          style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.textDark)),
-                      if (obra != null && obra.direccion.isNotEmpty)
-                        Text(obra.direccion,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                                fontSize: 11, color: AppColors.textSoft)),
-                    ]),
+                child: StatTile(
+                  label: 'Días',
+                  value: '$dias',
+                  accentColor: AppColors.roleEmpleado,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: StatTile(
+                  label: 'Entradas',
+                  value: '$entradas',
+                  accentColor: context.tokens.success,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: StatTile(
+                  label: 'Salidas',
+                  value: '$salidas',
+                  accentColor: context.tokens.textSecondary,
+                ),
               ),
             ]),
-          ),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: onMarcar,
-              icon: const Icon(Icons.fingerprint, color: Colors.white),
-              label: const Text('Marcar asistencia',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600)),
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.success,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12))),
-            ),
-          ),
-          const SizedBox(height: 10),
-          // Mis tareas
-          AppCard(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const CardTitle('Mis tareas'),
-              if (tareas.isEmpty)
-                Text('No tienes tareas asignadas.',
-                    style: TextStyle(fontSize: 12, color: context.tokens.textSecondary))
-              else
-                for (final t in pendientes.take(3))
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 6),
-                    child: Row(children: [
-                      const Icon(Icons.radio_button_unchecked,
-                          size: 16, color: AppColors.empleado),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(t.titulo,
-                            style: TextStyle(
-                                fontSize: 13, color: context.tokens.textPrimary)),
-                      ),
-                      AppBadge(estadoTareaLabel(t.estado),
-                          tone: estadoTareaTone(t.estado)),
-                    ]),
-                  ),
-              if (tareas.isNotEmpty && pendientes.isEmpty)
-                const Text('¡Todo al día! Sin tareas pendientes.',
-                    style: TextStyle(fontSize: 12, color: AppColors.success)),
-            ]),
-          ),
-          // Mi asistencia
-          AppCard(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const CardTitle('Mi asistencia'),
-              Row(children: [
-                _MiniStat(num: '$dias', label: 'Días', color: AppColors.empleado),
-                const SizedBox(width: 16),
-                _MiniStat(
-                    num: '$entradas', label: 'Entradas', color: AppColors.success),
-                const SizedBox(width: 16),
-                _MiniStat(
-                    num: '$salidas', label: 'Salidas', color: context.tokens.textSecondary),
-              ]),
-            ]),
-          ),
-        ]),
-      ),
-    ]);
-  }
-}
+            const SizedBox(height: AppSpacing.sm),
 
-class _MiniStat extends StatelessWidget {
-  final String num, label;
-  final Color color;
-  const _MiniStat({required this.num, required this.label, required this.color});
-  @override
-  Widget build(BuildContext context) {
-    return Column(children: [
-      Text(num,
-          style: TextStyle(
-              fontSize: 20, fontWeight: FontWeight.w700, color: color)),
-      Text(label,
-          style: TextStyle(fontSize: 10, color: context.tokens.textSecondary)),
+            // ── CTA: marcar asistencia ──────────────────────────────────────
+            SizedBox(
+              width: double.infinity,
+              child: PrimaryButton.large(
+                label: 'Marcar asistencia',
+                icon: Icons.fingerprint,
+                color: AppColors.roleEmpleado,
+                onPressed: () {
+                  HapticFeedback.mediumImpact();
+                  onMarcar?.call();
+                },
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+
+            // ── Mis tareas ──────────────────────────────────────────────────
+            AppCard(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(children: [
+                      const Expanded(child: CardTitle('Mis tareas')),
+                      if (pendientes.isNotEmpty)
+                        AppBadge(
+                          '${pendientes.length}',
+                          badgeTone: BadgeTone.info,
+                        ),
+                    ]),
+                    if (tareas.isEmpty)
+                      const Padding(
+                        padding:
+                            EdgeInsets.symmetric(vertical: AppSpacing.lg),
+                        child: EmptyState(
+                          icon: Icons.checklist_outlined,
+                          title: 'Sin tareas asignadas',
+                          description:
+                              'Cuando recibas una tarea aparecerá aquí.',
+                        ),
+                      )
+                    else if (pendientes.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                            vertical: AppSpacing.md),
+                        child: Row(children: [
+                          Icon(Icons.check_circle_outlined,
+                              size: 16, color: context.tokens.success),
+                          const SizedBox(width: AppSpacing.sm),
+                          Text('¡Todo al día! Sin tareas pendientes.',
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: context.tokens.success)),
+                        ]),
+                      )
+                    else
+                      for (final tarea in pendientes.take(3))
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                              vertical: AppSpacing.sm - 2),
+                          child: Row(children: [
+                            const Icon(Icons.radio_button_unchecked,
+                                size: 16,
+                                color: AppColors.roleEmpleado),
+                            const SizedBox(width: AppSpacing.sm),
+                            Expanded(
+                              child: Text(tarea.titulo,
+                                  style: context.text.body),
+                            ),
+                            AppBadge(estadoTareaLabel(tarea.estado),
+                                tone: estadoTareaTone(tarea.estado)),
+                          ]),
+                        ),
+                  ]),
+            ),
+          ],
+        ),
+      ),
     ]);
   }
 }

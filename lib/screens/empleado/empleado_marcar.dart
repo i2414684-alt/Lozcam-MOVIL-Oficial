@@ -238,27 +238,27 @@ class _EmpleadoMarcarState extends State<EmpleadoMarcar> {
   }
 
   Widget _bannerResultado(AsistenciaResult r) {
+    final t = context.tokens;
     final dist =
         r.distanciaMetros != null ? ' · ${r.distanciaMetros!.round()} m' : '';
+    final fg = r.ok ? t.success : t.danger;
     return AppCard(
-      color: r.ok ? AppColors.greenBg : AppColors.redBg,
-      borderColor: r.ok ? const Color(0xFF9FE1CB) : const Color(0xFFF4C0C0),
+      color: r.ok ? t.successSoft : t.dangerSoft,
+      borderColor: fg.withValues(alpha: 0.3),
       child: Row(children: [
-        Icon(r.ok ? Icons.check_circle : Icons.cancel,
-            size: 28, color: r.ok ? AppColors.greenText : AppColors.redText),
+        Icon(r.ok ? Icons.check_circle : Icons.cancel, size: 28, color: fg),
         const SizedBox(width: 10),
         Expanded(
           child: Text('${r.mensaje}$dist',
               style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: r.ok ? AppColors.greenText : AppColors.redText)),
+                  fontSize: 13, fontWeight: FontWeight.w600, color: fg)),
         ),
       ]),
     );
   }
 
   Widget _botonesMarcar() {
+    final t = context.tokens;
     final deshab = _marcando || _obra == null;
     return Column(children: [
       SizedBox(
@@ -278,8 +278,9 @@ class _EmpleadoMarcarState extends State<EmpleadoMarcar> {
                   fontSize: 15,
                   fontWeight: FontWeight.w600)),
           style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.success,
-              disabledBackgroundColor: AppColors.success.withValues(alpha:0.4),
+              backgroundColor: t.success,
+              foregroundColor: Colors.white,
+              disabledBackgroundColor: t.success.withValues(alpha: 0.4),
               elevation: 0,
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(
@@ -291,13 +292,14 @@ class _EmpleadoMarcarState extends State<EmpleadoMarcar> {
         width: double.infinity,
         child: OutlinedButton.icon(
           onPressed: deshab ? null : () => _marcar('salida'),
-          icon: Icon(Icons.logout, color: context.tokens.textPrimary, size: 18),
+          icon: Icon(Icons.logout, color: t.textPrimary, size: 18),
           label: Text('Marcar Salida',
-              style: TextStyle(
-                  color: context.tokens.textPrimary, fontWeight: FontWeight.w600)),
+              style:
+                  TextStyle(color: t.textPrimary, fontWeight: FontWeight.w600)),
           style: OutlinedButton.styleFrom(
-              backgroundColor: AppColors.grayBg,
-              side: BorderSide.none,
+              backgroundColor: t.surfaceAlt,
+              foregroundColor: t.textPrimary,
+              side: BorderSide(color: t.border, width: 1),
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12))),
