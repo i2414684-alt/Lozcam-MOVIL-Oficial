@@ -1,7 +1,11 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../theme/colors.dart';
 import '../../theme/app_theme.dart';
 import '../../core/ia_service.dart';
+import '../../data/reporte_excel.dart';
 
 /// Abre el asistente IA del gerente en una hoja inferior.
 void mostrarChatGerente(BuildContext context) {
@@ -39,12 +43,45 @@ class _ChatSheetState extends State<_ChatSheet> {
         'Hola, soy tu asistente de monitoreo 👷. Pregúntame por asistencia, ausentes por área, avance de obras o tareas.'),
   ];
   bool _enviando = false;
+  bool _exportando = false;
 
   @override
   void dispose() {
     _ctrl.dispose();
     _scroll.dispose();
     super.dispose();
+  }
+
+  /// Genera el reporte Excel desde los datos reales (sin IA) y abre la hoja de
+  /// compartir para guardarlo/enviarlo. Ante error, lo informa en el chat.
+  Future<void> _exportar() async {
+    if (_exportando) return;
+    setState(() => _exportando = true);
+    try {
+      final bytes = await generarReporteExcel();
+      final dir = await getTemporaryDirectory();
+      final ruta = '${dir.path}/${nombreArchivoReporte()}';
+      await File(ruta).writeAsBytes(bytes, flush: true);
+      if (!mounted) return;
+      await Share.shareXFiles(
+        [
+          XFile(ruta,
+              mimeType:
+                  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        ],
+        subject: 'Reporte LOZCAM',
+      );
+      if (!mounted) return;
+      setState(() => _exportando = false);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _exportando = false;
+        _msgs.add(const _Msg(
+            false, 'No se pudo generar el reporte Excel. Intenta de nuevo.'));
+      });
+      _bajar();
+    }
   }
 
   Future<void> _enviar(String texto) async {
@@ -103,6 +140,21 @@ class _ChatSheetState extends State<_ChatSheet> {
                         fontSize: 16,
                         fontWeight: FontWeight.w700)),
               ),
+              _exportando
+                  ? const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white)),
+                    )
+                  : IconButton(
+                      tooltip: 'Exportar reporte a Excel',
+                      icon: const Icon(Icons.file_download_outlined,
+                          color: Colors.white),
+                      onPressed: _exportar,
+                    ),
               IconButton(
                 icon: const Icon(Icons.close, color: Colors.white),
                 onPressed: () => Navigator.of(context).pop(),
@@ -180,7 +232,30 @@ class _ChatSheetState extends State<_ChatSheet> {
     );
   }
 
+  /// Convierte **texto** en spans negrita; el resto queda normal. El color base
+  /// lo hereda cada span del estilo del TextSpan padre (en _burbuja).
+  List<TextSpan> _parsearTexto(String texto) {
+    final spans = <TextSpan>[];
+    final regex = RegExp(r'\*\*(.+?)\*\*');
+    int cursor = 0;
+    for (final match in regex.allMatches(texto)) {
+      if (match.start > cursor) {
+        spans.add(TextSpan(text: texto.substring(cursor, match.start)));
+      }
+      spans.add(TextSpan(
+        text: match.group(1),
+        style: const TextStyle(fontWeight: FontWeight.bold),
+      ));
+      cursor = match.end;
+    }
+    if (cursor < texto.length) {
+      spans.add(TextSpan(text: texto.substring(cursor)));
+    }
+    return spans;
+  }
+
   Widget _burbuja(_Msg m) {
+    final colorTexto = m.user ? Colors.white : context.tokens.textPrimary;
     return Align(
       alignment: m.user ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
@@ -192,11 +267,13 @@ class _ChatSheetState extends State<_ChatSheet> {
           color: m.user ? AppColors.admin : context.tokens.appBg,
           borderRadius: BorderRadius.circular(14),
         ),
-        child: Text(m.text,
+        child: Text.rich(
+          TextSpan(
             style: TextStyle(
-                fontSize: 13,
-                height: 1.35,
-                color: m.user ? Colors.white : context.tokens.textPrimary)),
+                fontSize: 13, height: 1.35, color: colorTexto),
+            children: _parsearTexto(m.text),
+          ),
+        ),
       ),
     );
   }

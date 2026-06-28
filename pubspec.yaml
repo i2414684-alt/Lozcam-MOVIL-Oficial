@@ -27,6 +27,12 @@ dependencies:
   google_fonts: ^6.2.1
   # Efecto skeleton durante cargas de listas
   shimmer: ^3.0.0
+  # Reporte Excel (.xlsx) del monitoreo de gerencia (generado en el dispositivo)
+  excel: ^4.0.0
+  # Carpeta temporal para guardar el .xlsx antes de compartirlo
+  path_provider: ^2.1.0
+  # Compartir/guardar el archivo generado (no hay "descargar" en móvil)
+  share_plus: ^10.0.0
 
 dev_dependencies:
   flutter_test:

@@ -1,8 +1,10 @@
 import '../core/asistencia_service.dart';
 import 'asignaciones_repository.dart';
 import 'avance_repository.dart';
+import 'enums.dart';
 import 'obras_repository.dart';
 import 'personas_repository.dart';
+import 'roles.dart';
 import 'tareas_repository.dart';
 
 /// Arma un resumen de texto (SOLO LECTURA) con el estado actual de la empresa
@@ -18,6 +20,7 @@ Future<String> construirContextoMonitoreo() async {
   final detalle = await asignacionesDetalle(); // {obra_id, perfil_id}
   final asistHoy = await asistenciasHoyTodas(); // {obra_id, perfil_id}
   final personal = await todoElPersonal();
+  final clientes = await personasPorRol('cliente');
   final tareas = todasLasTareas();
 
   final nombrePorId = {for (final p in personal) p.id: p.nombre};
@@ -44,7 +47,35 @@ Future<String> construirContextoMonitoreo() async {
   sb.writeln('- Faltaron hoy: ${ausentesPersonal.length}'
       '${ausentesPersonal.isEmpty ? '' : ' [${ausentesPersonal.map((p) => p.nombre).join(', ')}]'}');
   sb.writeln('');
-  sb.writeln('OBRAS (asistencia de hoy y avance):');
+
+  // PLANTILLA COMPLETA POR ROL: todo el personal interno agrupado por su rol,
+  // ordenado de mayor a menor autoridad (nivel). Da al asistente visibilidad
+  // total de quién ocupa cada cargo para armar reportes por área/rol.
+  sb.writeln('PERSONAL POR ROL (plantilla completa):');
+  if (personal.isEmpty) {
+    sb.writeln('- (No se pudo leer el personal o no hay registros.)');
+  } else {
+    final porRol = <String, List<String>>{};
+    for (final p in personal) {
+      porRol.putIfAbsent(p.rol, () => <String>[]).add(p.nombre);
+    }
+    final rolesOrdenados = porRol.keys.toList()
+      ..sort((a, b) =>
+          (rolPorClave(a)?.nivel ?? 99).compareTo(rolPorClave(b)?.nivel ?? 99));
+    for (final rol in rolesOrdenados) {
+      final nombres = porRol[rol]!;
+      final etiqueta = rolPorClave(rol)?.nombre ?? rol;
+      sb.writeln('- $etiqueta (${nombres.length}): ${nombres.join(', ')}');
+    }
+  }
+  sb.writeln('');
+
+  // CLIENTES registrados (externos a la jerarquía): nombres para reportes.
+  sb.writeln('CLIENTES REGISTRADOS: ${clientes.length}'
+      '${clientes.isEmpty ? '' : ' [${clientes.map((c) => c.nombre).join(', ')}]'}');
+  sb.writeln('');
+
+  sb.writeln('OBRAS (estado, asistencia de hoy y avance):');
 
   if (obras.isEmpty) {
     sb.writeln('- (No hay obras activas o no se pudieron leer.)');
@@ -71,8 +102,10 @@ Future<String> construirContextoMonitoreo() async {
     final avances = avancesPorObra[i];
     final pct = avances.isNotEmpty ? '${avances.first.pct}%' : 'sin reporte';
 
+    final estado = labelEstadoObra(o.estado);
     sb.writeln('- ${o.nombre}'
-        '${o.direccion.isNotEmpty ? ' (${o.direccion})' : ''}: '
+        '${o.direccion.isNotEmpty ? ' (${o.direccion})' : ''}'
+        '${estado.isNotEmpty ? ' [$estado]' : ''}: '
         'asignados ${asignadosIds.length}; '
         'presentes ${pres.length} [${nombres(pres)}]; '
         'ausentes ${aus.length} [${nombres(aus)}]; '
