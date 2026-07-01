@@ -82,6 +82,7 @@ class _AdminAsistenciasState extends State<AdminAsistencias> {
                     label: 'Obras',
                     value: '${_obras.length}',
                     accentColor: AppColors.roleAdmin,
+                    icon: Icons.apartment_rounded,
                   ),
                 ),
                 const SizedBox(width: AppSpacing.sm),
@@ -90,6 +91,7 @@ class _AdminAsistenciasState extends State<AdminAsistencias> {
                     label: 'Tareas abiertas',
                     value: '$abiertas',
                     accentColor: t.warning,
+                    icon: Icons.checklist_rounded,
                   ),
                 ),
                 const SizedBox(width: AppSpacing.sm),
@@ -98,6 +100,7 @@ class _AdminAsistenciasState extends State<AdminAsistencias> {
                     label: 'Presentes hoy',
                     value: '$presentesHoy',
                     accentColor: t.success,
+                    icon: Icons.how_to_reg_outlined,
                   ),
                 ),
               ]),
@@ -205,31 +208,57 @@ class _AdminAsistenciasState extends State<AdminAsistencias> {
     final t = context.tokens;
     final asignados = _conteo[o.id] ?? 0;
     final presentes = _presentesEn(o.id);
-    final tone = asignados == 0
-        ? BadgeTone.neutral
+    final (String estado, BadgeTone tone) = asignados == 0
+        ? ('Sin equipo', BadgeTone.neutral)
         : presentes >= asignados
-            ? BadgeTone.success
+            ? ('A tiempo', BadgeTone.success)
             : presentes == 0
-                ? BadgeTone.danger
-                : BadgeTone.warning;
+                ? ('Retrasado', BadgeTone.danger)
+                : ('Parcial', BadgeTone.warning);
+    final ratio =
+        asignados == 0 ? 0.0 : (presentes / asignados).clamp(0.0, 1.0);
+    final barColor = switch (tone) {
+      BadgeTone.success => t.success,
+      BadgeTone.warning => t.warning,
+      BadgeTone.danger => t.danger,
+      _ => t.textSecondary,
+    };
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm - 1),
-      child: Row(children: [
-        Expanded(
-          child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(o.nombre,
-                    style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: t.textPrimary)),
-                Text('$asignados asignado(s)',
-                    style: TextStyle(
-                        fontSize: 11, color: t.textSecondary)),
-              ]),
-        ),
-        AppBadge('$presentes/$asignados hoy', badgeTone: tone),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Expanded(
+            child: Text(o.nombre,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: t.textPrimary)),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          AppBadge(estado, badgeTone: tone),
+        ]),
+        const SizedBox(height: 6),
+        Row(children: [
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(AppRadius.pill),
+              child: LinearProgressIndicator(
+                value: ratio,
+                minHeight: 6,
+                backgroundColor: t.surfaceAlt,
+                valueColor: AlwaysStoppedAnimation<Color>(barColor),
+              ),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Text('$presentes/$asignados',
+              style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: t.textSecondary)),
+        ]),
       ]),
     );
   }

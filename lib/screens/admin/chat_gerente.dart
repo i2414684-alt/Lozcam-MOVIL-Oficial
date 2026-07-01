@@ -1,9 +1,8 @@
-import 'dart:io';
+import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
 import '../../theme/colors.dart';
 import '../../theme/app_theme.dart';
+import '../../core/descarga.dart';
 import '../../core/ia_service.dart';
 import '../../data/reporte_excel.dart';
 
@@ -59,26 +58,22 @@ class _ChatSheetState extends State<_ChatSheet> {
     setState(() => _exportando = true);
     try {
       final bytes = await generarReporteExcel();
-      final dir = await getTemporaryDirectory();
-      final ruta = '${dir.path}/${nombreArchivoReporte()}';
-      await File(ruta).writeAsBytes(bytes, flush: true);
       if (!mounted) return;
-      await Share.shareXFiles(
-        [
-          XFile(ruta,
-              mimeType:
-                  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-        ],
-        subject: 'Reporte LOZCAM',
-      );
-      if (!mounted) return;
-      setState(() => _exportando = false);
-    } catch (_) {
+      // Fachada multiplataforma: en web descarga por el navegador; en móvil/
+      // escritorio guarda y comparte. Devuelve el mensaje a mostrar.
+      final msg = await guardarODescargar(bytes, nombreArchivoReporte());
       if (!mounted) return;
       setState(() {
         _exportando = false;
-        _msgs.add(const _Msg(
-            false, 'No se pudo generar el reporte Excel. Intenta de nuevo.'));
+        _msgs.add(_Msg(false, msg));
+      });
+      _bajar();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _exportando = false;
+        _msgs.add(_Msg(
+            false, 'No se pudo generar el reporte Excel.\nDetalle técnico: $e'));
       });
       _bajar();
     }
@@ -116,19 +111,28 @@ class _ChatSheetState extends State<_ChatSheet> {
     final inset = MediaQuery.of(context).viewInsets.bottom;
     return Padding(
       padding: EdgeInsets.only(bottom: inset),
-      child: Container(
-        height: MediaQuery.of(context).size.height * 0.82,
-        decoration: BoxDecoration(
-          color: context.tokens.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(children: [
+      child: ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+          child: Container(
+            height: MediaQuery.of(context).size.height * 0.82,
+            decoration: BoxDecoration(
+              color: context.tokens.surface.withValues(alpha: 0.92),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(24)),
+              border: Border(
+                top: BorderSide(
+                    color: Colors.white.withValues(alpha: .12), width: 0.8),
+              ),
+            ),
+            child: Column(children: [
           // Encabezado
           Container(
             padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
             decoration: const BoxDecoration(
               color: AppColors.admin,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
             ),
             child: Row(children: [
               const Text('👷', style: TextStyle(fontSize: 22)),
@@ -228,6 +232,8 @@ class _ChatSheetState extends State<_ChatSheet> {
             ]),
           ),
         ]),
+      ),
+      ),
       ),
     );
   }

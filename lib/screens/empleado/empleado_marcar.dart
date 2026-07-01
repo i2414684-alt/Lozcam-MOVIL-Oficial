@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../theme/colors.dart';
 import '../../theme/app_theme.dart';
+import '../../theme/tokens.dart';
 import '../../widgets/common.dart';
 import '../../widgets/live_map.dart';
 import '../../models/models.dart';
@@ -131,17 +132,32 @@ class _EmpleadoMarcarState extends State<EmpleadoMarcar> {
                       _selectorObra(),
                       Padding(
                         padding: const EdgeInsets.only(bottom: 10),
-                        child: LiveMap(
-                          obraLat: _obra?.lat,
-                          obraLng: _obra?.lng,
-                          radioMetros: _obra?.radioMetros ?? 200,
-                          obraNombre: _obra?.nombre,
-                          height: 240,
-                          onPosicion: (p) => _ultimaPos = p,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(AppRadius.xxl),
+                          child: Stack(children: [
+                            LiveMap(
+                              obraLat: _obra?.lat,
+                              obraLng: _obra?.lng,
+                              radioMetros: _obra?.radioMetros ?? 200,
+                              obraNombre: _obra?.nombre,
+                              height: 280,
+                              onPosicion: (p) => _ultimaPos = p,
+                            ),
+                            Positioned(
+                              left: 10,
+                              right: 10,
+                              bottom: 10,
+                              child: GlassPanel(
+                                blur: 20,
+                                radius: AppRadius.xl,
+                                padding: const EdgeInsets.all(10),
+                                child: _botonesMarcar(),
+                              ),
+                            ),
+                          ]),
                         ),
                       ),
                       if (_resultado != null) _bannerResultado(_resultado!),
-                      _botonesMarcar(),
                       _recientes(),
                     ]),
               ),
@@ -260,49 +276,51 @@ class _EmpleadoMarcarState extends State<EmpleadoMarcar> {
   Widget _botonesMarcar() {
     final t = context.tokens;
     final deshab = _marcando || _obra == null;
-    return Column(children: [
-      SizedBox(
-        width: double.infinity,
+    return Row(children: [
+      Expanded(
         child: ElevatedButton.icon(
           onPressed: deshab ? null : () => _marcar('entrada'),
           icon: _marcando
               ? const SizedBox(
-                  width: 18,
-                  height: 18,
+                  width: 16,
+                  height: 16,
                   child: CircularProgressIndicator(
                       strokeWidth: 2, color: Colors.white))
-              : const Icon(Icons.login, color: Colors.white),
-          label: const Text('Marcar Entrada',
+              : const Icon(Icons.login, color: Colors.white, size: 18),
+          label: const Text('Entrada',
               style: TextStyle(
                   color: Colors.white,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600)),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700)),
           style: ElevatedButton.styleFrom(
               backgroundColor: t.success,
               foregroundColor: Colors.white,
               disabledBackgroundColor: t.success.withValues(alpha: 0.4),
               elevation: 0,
-              padding: const EdgeInsets.symmetric(vertical: 14),
+              padding: const EdgeInsets.symmetric(vertical: 13),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12))),
+                  borderRadius: BorderRadius.circular(AppRadius.lg))),
         ),
       ),
-      const SizedBox(height: 8),
-      SizedBox(
-        width: double.infinity,
-        child: OutlinedButton.icon(
+      const SizedBox(width: 8),
+      Expanded(
+        child: ElevatedButton.icon(
           onPressed: deshab ? null : () => _marcar('salida'),
           icon: Icon(Icons.logout, color: t.textPrimary, size: 18),
-          label: Text('Marcar Salida',
-              style:
-                  TextStyle(color: t.textPrimary, fontWeight: FontWeight.w600)),
-          style: OutlinedButton.styleFrom(
-              backgroundColor: t.surfaceAlt,
+          label: Text('Salida',
+              style: TextStyle(
+                  color: t.textPrimary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700)),
+          style: ElevatedButton.styleFrom(
+              backgroundColor: t.surface,
               foregroundColor: t.textPrimary,
-              side: BorderSide(color: t.border, width: 1),
-              padding: const EdgeInsets.symmetric(vertical: 14),
+              disabledBackgroundColor: t.surface.withValues(alpha: 0.5),
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(vertical: 13),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12))),
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
+                  side: BorderSide(color: t.border, width: 1))),
         ),
       ),
     ]);

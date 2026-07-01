@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../theme/colors.dart';
 import '../../theme/app_theme.dart';
+import '../../theme/tokens.dart';
 import '../../widgets/common.dart';
 import '../../widgets/live_map.dart';
 import '../../models/models.dart';
@@ -67,13 +68,16 @@ class _ClienteMapaState extends State<ClienteMapa> {
                 : ListView(padding: const EdgeInsets.all(12), children: [
                     Padding(
                       padding: const EdgeInsets.only(bottom: 10),
-                      child: LiveMap(
-                        obraLat: obra.lat,
-                        obraLng: obra.lng,
-                        radioMetros: obra.radioMetros,
-                        obraNombre: obra.nombre,
-                        height: 220,
-                        mostrarUsuario: false,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(AppRadius.xxl),
+                        child: LiveMap(
+                          obraLat: obra.lat,
+                          obraLng: obra.lng,
+                          radioMetros: obra.radioMetros,
+                          obraNombre: obra.nombre,
+                          height: 220,
+                          mostrarUsuario: false,
+                        ),
                       ),
                     ),
                     AppCard(

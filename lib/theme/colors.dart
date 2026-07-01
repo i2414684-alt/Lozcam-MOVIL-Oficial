@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 /// Paleta central de Lozcam.
 class AppColors {
   // ── Marca única ────────────────────────────────────────────────────────────
-  static const brand = Color(0xFFD74315); // naranja Lozcam — ÚNICA fuente de verdad
+  static const brand = Color(0xFFFF6D00); // naranja Lozcam 2026 — ÚNICA fuente de verdad
 
   /// Alias legacy — usar [brand].
   @Deprecated('Usa AppColors.brand')
@@ -14,16 +14,16 @@ class AppColors {
   static const admin = brand;
 
   // ── Tints de marca (HSL ~15° / sat ~75%) ──────────────────────────────────
-  static const brand50  = Color(0xFFFEF2EE);
-  static const brand100 = Color(0xFFFDDAD0);
-  static const brand200 = Color(0xFFFAB49F);
-  static const brand300 = Color(0xFFF58A6B);
-  static const brand400 = Color(0xFFEF6038);
-  static const brand500 = Color(0xFFD74315); // = brand
-  static const brand600 = Color(0xFFB53510);
-  static const brand700 = Color(0xFF8F290C);
-  static const brand800 = Color(0xFF6A1D08);
-  static const brand900 = Color(0xFF451205);
+  static const brand50  = Color(0xFFFFF3E9);
+  static const brand100 = Color(0xFFFFE0C2);
+  static const brand200 = Color(0xFFFFC085);
+  static const brand300 = Color(0xFFFF9D47);
+  static const brand400 = Color(0xFFFF8320);
+  static const brand500 = Color(0xFFFF6D00); // = brand
+  static const brand600 = Color(0xFFE85F00);
+  static const brand700 = Color(0xFFC24E00);
+  static const brand800 = Color(0xFF8F3A00);
+  static const brand900 = Color(0xFF5C2500);
 
   // ── Colores por rol ────────────────────────────────────────────────────────
   static const roleAdmin    = brand;

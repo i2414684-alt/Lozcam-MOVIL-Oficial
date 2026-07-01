@@ -64,11 +64,32 @@ class _EmpleadoInasistenciasState extends State<EmpleadoInasistencias> {
             physics: const AlwaysScrollableScrollPhysics(),
             children: [
               Row(children: [
-                StatCard('${_dias.length}', 'Días', color: AppColors.empleado),
+                Expanded(
+                  child: StatTile(
+                    label: 'Días',
+                    value: '${_dias.length}',
+                    accentColor: AppColors.empleado,
+                    icon: Icons.calendar_month_outlined,
+                  ),
+                ),
                 const SizedBox(width: 8),
-                StatCard('$entradas', 'Entradas', color: AppColors.success),
+                Expanded(
+                  child: StatTile(
+                    label: 'Entradas',
+                    value: '$entradas',
+                    accentColor: AppColors.success,
+                    icon: Icons.login,
+                  ),
+                ),
                 const SizedBox(width: 8),
-                StatCard('$salidas', 'Salidas', color: context.tokens.textSecondary),
+                Expanded(
+                  child: StatTile(
+                    label: 'Salidas',
+                    value: '$salidas',
+                    accentColor: context.tokens.textSecondary,
+                    icon: Icons.logout,
+                  ),
+                ),
               ]),
               const SizedBox(height: 10),
               if (_cargando)
@@ -101,28 +122,60 @@ class _EmpleadoInasistenciasState extends State<EmpleadoInasistencias> {
   }
 
   Widget _filaDia(Map<String, dynamic> d) {
+    final t = context.tokens;
     final obra = (d['obra_nombre'] ?? '').toString();
     final salida = d['hora_salida'];
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 7),
       child: Row(children: [
-        const Icon(Icons.check_circle, size: 16, color: AppColors.success),
-        const SizedBox(width: 8),
+        Container(
+          width: 34,
+          height: 34,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(color: t.successSoft, shape: BoxShape.circle),
+          child: Icon(Icons.check_rounded, size: 18, color: t.success),
+        ),
+        const SizedBox(width: 10),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(obra.isEmpty ? _fechaCorta(d['fecha']) : '${_fechaCorta(d['fecha'])} · $obra',
+            Text(
+                obra.isEmpty
+                    ? _fechaCorta(d['fecha'])
+                    : '${_fechaCorta(d['fecha'])} · $obra',
                 style: TextStyle(
                     fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: context.tokens.textPrimary)),
+                    fontWeight: FontWeight.w600,
+                    color: t.textPrimary)),
+            const SizedBox(height: 1),
             Text(
                 'Entrada ${_hora(d['hora_entrada'])}  ·  Salida ${_hora(salida)}',
-                style: TextStyle(fontSize: 11, color: context.tokens.textSecondary)),
+                style: TextStyle(fontSize: 11, color: t.textSecondary)),
           ]),
         ),
-        AppBadge(salida != null ? 'Completo' : 'Solo entrada',
-            tone: salida != null ? 'green' : 'amber'),
+        Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+          AppBadge(salida != null ? 'Completo' : 'Solo entrada',
+              badgeTone: salida != null ? BadgeTone.success : BadgeTone.warning),
+          const SizedBox(height: 4),
+          _gpsChip(t),
+        ]),
       ]),
     );
   }
+
+  /// Distintivo de validación por GPS (toda marca registrada pasó el radio).
+  Widget _gpsChip(AppTokens t) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+        decoration: BoxDecoration(
+          color: t.brandSoft,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: t.brand.withValues(alpha: .25), width: 0.8),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.location_on, size: 11, color: t.brand),
+          const SizedBox(width: 3),
+          Text('GPS',
+              style: TextStyle(
+                  fontSize: 9.5, fontWeight: FontWeight.w700, color: t.brand)),
+        ]),
+      );
 }

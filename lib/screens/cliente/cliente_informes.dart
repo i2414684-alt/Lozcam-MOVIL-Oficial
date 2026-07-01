@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../theme/colors.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
+import '../../widgets/charts.dart';
 import '../../models/models.dart';
 import '../../data/obras_repository.dart';
 import '../../data/avance_repository.dart';
@@ -76,22 +77,22 @@ class _ClienteInformesState extends State<ClienteInformes> {
                       subtitle: 'Aparecerá cuando el sistema lo registre.'),
                 )
               else ...[
-                AppCard(
-                  color: AppColors.greenBg,
-                  borderColor: const Color(0xFF9FE1CB),
+                AppCard.tonal(
+                  seed: AppColors.roleCliente,
                   child: Row(children: [
                     Expanded(
                       child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(obra.nombre,
-                                style: const TextStyle(
+                                style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w700,
-                                    color: AppColors.textDark)),
+                                    color: context.tokens.textPrimary)),
                             Text('${_avances.length} reporte(s)',
-                                style: const TextStyle(
-                                    fontSize: 11, color: AppColors.textSoft)),
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    color: context.tokens.textSecondary)),
                           ]),
                     ),
                     if (ultimoPct != null)
@@ -100,13 +101,29 @@ class _ClienteInformesState extends State<ClienteInformes> {
                             style: const TextStyle(
                                 fontSize: 26,
                                 fontWeight: FontWeight.w700,
-                                color: AppColors.cliente)),
-                        const Text('último',
+                                color: AppColors.roleCliente)),
+                        Text('último',
                             style: TextStyle(
-                                fontSize: 10, color: AppColors.textSoft)),
+                                fontSize: 10,
+                                color: context.tokens.textSecondary)),
                       ]),
                   ]),
                 ),
+                if (_avances.length >= 2)
+                  AppCard(
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const CardTitle('Tendencia de avance'),
+                          const SizedBox(height: 6),
+                          LineaTendencia(
+                            valores: _avances.reversed
+                                .map((a) => a.pct.toDouble())
+                                .toList(),
+                            color: AppColors.roleCliente,
+                          ),
+                        ]),
+                  ),
                 if (_avances.isEmpty)
                   AppCard(
                     child: IconRow(

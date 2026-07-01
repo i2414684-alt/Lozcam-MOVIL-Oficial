@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../theme/colors.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/tokens.dart';
 import '../../widgets/common.dart';
+import '../../widgets/charts.dart';
 import '../../models/models.dart';
 import '../../core/auth_service.dart';
 import '../../core/asistencia_service.dart';
@@ -89,6 +91,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       label: 'Obras activas',
                       value: '${_obras.length}',
                       accentColor: AppColors.roleAdmin,
+                      icon: Icons.apartment_rounded,
                     ),
                   ),
                   const SizedBox(width: AppSpacing.sm),
@@ -97,6 +100,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       label: 'Empleados',
                       value: '$_personal',
                       accentColor: AppColors.roleEmpleado,
+                      icon: Icons.groups_2_outlined,
                     ),
                   ),
                 ]),
@@ -107,6 +111,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       label: 'Tareas abiertas',
                       value: '$abiertas',
                       accentColor: t.warning,
+                      icon: Icons.checklist_rounded,
                     ),
                   ),
                   const SizedBox(width: AppSpacing.sm),
@@ -115,12 +120,34 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       label: 'Presentes hoy',
                       value: '$_presentesHoy',
                       accentColor: t.success,
+                      icon: Icons.how_to_reg_outlined,
                     ),
                   ),
                 ]),
                 const SizedBox(height: AppSpacing.sm),
                 if (_sospechaSinPermisos) _avisoSinPermisos(t),
               ],
+
+              // ── Gráfica: trabajadores por obra ────────────────────────────
+              if (!_cargando && _obras.isNotEmpty)
+                AppCard(
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const CardTitle('Trabajadores por obra'),
+                        const SizedBox(height: 6),
+                        BarrasComparativa(
+                          datos: [
+                            for (final o in _obras)
+                              (
+                                label: o.nombre,
+                                valor: (_conteo[o.id] ?? 0).toDouble()
+                              ),
+                          ],
+                          color: AppColors.roleAdmin,
+                        ),
+                      ]),
+                ),
 
               // ── Lista de obras ────────────────────────────────────────────
               AppCard(
@@ -203,7 +230,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
                           ),
                     ]),
               ),
-            ],
+            ]
+                .animate(interval: 60.ms)
+                .fadeIn(duration: 280.ms)
+                .slideY(begin: 0.04, end: 0, curve: Curves.easeOutCubic),
           ),
         ),
       ),

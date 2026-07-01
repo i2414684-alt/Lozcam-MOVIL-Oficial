@@ -1,3 +1,4 @@
+import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 import '../theme/colors.dart';
@@ -138,11 +139,59 @@ class AppCard extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
+        borderRadius: BorderRadius.circular(AppRadius.xxl),
         border: Border.fromBorderSide(side),
         boxShadow: shadows,
       ),
       child: child,
+    );
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  GlassPanel — "vidrio esmerilado" (glassmorphism) nativo, sin paquetes.
+//  Desenfoca lo que hay detrás (BackdropFilter) y aplica un tinte translúcido.
+//  Úsalo para modales, hojas inferiores o tarjetas premium sobre gradientes.
+// ══════════════════════════════════════════════════════════════════════════════
+
+class GlassPanel extends StatelessWidget {
+  final Widget child;
+  final double blur;
+  final double radius;
+  final EdgeInsetsGeometry padding;
+
+  const GlassPanel({
+    super.key,
+    required this.child,
+    this.blur = 18,
+    this.radius = AppRadius.xxl,
+    this.padding = const EdgeInsets.all(AppSpacing.lg),
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final light = Theme.of(context).brightness == Brightness.light;
+    final tint = light
+        ? Colors.white.withValues(alpha: .55)
+        : Colors.white.withValues(alpha: .06);
+    final borderCol = light
+        ? Colors.white.withValues(alpha: .60)
+        : Colors.white.withValues(alpha: .12);
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(radius),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+        child: Container(
+          padding: padding,
+          decoration: BoxDecoration(
+            color: tint,
+            borderRadius: BorderRadius.circular(radius),
+            border: Border.all(color: borderCol, width: 0.8),
+          ),
+          child: child,
+        ),
+      ),
     );
   }
 }
@@ -570,6 +619,7 @@ class StatTile extends StatelessWidget {
   final String? delta;
   final bool? deltaPositive;
   final Color? accentColor;
+  final IconData? icon;
 
   const StatTile({
     super.key,
@@ -578,6 +628,7 @@ class StatTile extends StatelessWidget {
     this.delta,
     this.deltaPositive,
     this.accentColor,
+    this.icon,
   });
 
   @override
@@ -592,7 +643,7 @@ class StatTile extends StatelessWidget {
         padding: const EdgeInsets.all(AppSpacing.lg),
         decoration: BoxDecoration(
           color: t.surface,
-          borderRadius: BorderRadius.circular(AppRadius.lg),
+          borderRadius: BorderRadius.circular(AppRadius.xxl),
           border: Border.all(color: t.border, width: 0.5),
           boxShadow: AppShadows.sm(brightness),
         ),
@@ -600,7 +651,20 @@ class StatTile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(label.toUpperCase(), style: context.text.overline),
+            Row(children: [
+              Expanded(
+                  child:
+                      Text(label.toUpperCase(), style: context.text.overline)),
+              if (icon != null)
+                Container(
+                  padding: const EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    color: accent.withValues(alpha: .12),
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                  ),
+                  child: Icon(icon, size: 14, color: accent),
+                ),
+            ]),
             const SizedBox(height: AppSpacing.xs),
             Text(
               value,

@@ -73,7 +73,7 @@ class _AdminShellState extends State<AdminShell> {
         child: FloatingActionButton(
           backgroundColor: AppColors.brand,
           onPressed: () => mostrarChatGerente(context),
-          child: const Text('🤖', style: TextStyle(fontSize: 22)),
+          child: const Icon(Icons.auto_awesome, color: Colors.white, size: 24),
         ),
       ),
       bottomNavigationBar: AppBottomNav(

@@ -88,9 +88,9 @@ class AppTokens extends ThemeExtension<AppTokens> {
   );
 
   static const dark = AppTokens(
-    appBg:        Color(0xFF0F0F14),
-    surface:      Color(0xFF1A1A24),
-    surfaceAlt:   Color(0xFF232330),
+    appBg:        Color(0xFF0A0A0A), // negro "Industrial Luxury" 2026
+    surface:      Color(0xFF151517),
+    surfaceAlt:   Color(0xFF1F1F22),
     textPrimary:  Color(0xFFF5F5F5),
     textSecondary: Color(0xFF9E9E9E),
     border:       Color(0xFF2E2E3C),
@@ -99,7 +99,7 @@ class AppTokens extends ThemeExtension<AppTokens> {
     inputBorder:  Color(0xFF3A3A50),
     overlay:      Color(0x73000000),
     brand:        AppColors.brand400,
-    brandSoft:    Color(0xFF2E1509),
+    brandSoft:    Color(0xFF2A1400),
     onBrand:      Color(0xFFFFFFFF),
     success:      Color(0xFF4CD964),
     successSoft:  Color(0xFF0D2B14),
@@ -199,7 +199,7 @@ class AppTheme {
       brightness: brightness,
     ).copyWith(surface: t.surface);
 
-    final poppinsBase = GoogleFonts.poppinsTextTheme()
+    final interBase = GoogleFonts.interTextTheme()
         .apply(bodyColor: t.textPrimary, displayColor: t.textPrimary);
 
     return ThemeData(
@@ -208,7 +208,7 @@ class AppTheme {
       scaffoldBackgroundColor: t.appBg,
       colorScheme: scheme,
       extensions: [t],
-      textTheme: poppinsBase,
+      textTheme: interBase,
 
       // ── AppBar ──────────────────────────────────────────────────────────────
       appBarTheme: AppBarTheme(
@@ -217,7 +217,7 @@ class AppTheme {
         elevation: 0,
         scrolledUnderElevation: 1,
         surfaceTintColor: brand.withValues(alpha: .05),
-        titleTextStyle: GoogleFonts.poppins(
+        titleTextStyle: GoogleFonts.lexend(
             fontSize: 17,
             fontWeight: FontWeight.w600,
             color: t.textPrimary),
@@ -228,7 +228,7 @@ class AppTheme {
         color: t.surface,
         elevation: brightness == Brightness.light ? 0 : 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.lg),
+          borderRadius: BorderRadius.circular(AppRadius.xxl),
           side: BorderSide(color: t.border, width: 0.5),
         ),
         margin: EdgeInsets.zero,
@@ -241,7 +241,7 @@ class AppTheme {
         isDense: true,
         contentPadding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.lg, vertical: AppSpacing.md),
-        hintStyle: GoogleFonts.poppins(
+        hintStyle: GoogleFonts.inter(
             fontSize: 14,
             color: t.textSecondary.withValues(alpha: .7)),
         enabledBorder: OutlineInputBorder(
@@ -270,7 +270,7 @@ class AppTheme {
           minimumSize: const Size.fromHeight(48),
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppRadius.md)),
-          textStyle: GoogleFonts.poppins(
+          textStyle: GoogleFonts.inter(
               fontSize: 15, fontWeight: FontWeight.w600),
           elevation: 0,
         ),
@@ -283,7 +283,7 @@ class AppTheme {
           minimumSize: const Size.fromHeight(48),
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppRadius.md)),
-          textStyle: GoogleFonts.poppins(
+          textStyle: GoogleFonts.inter(
               fontSize: 15, fontWeight: FontWeight.w600),
         ),
       ),
@@ -295,7 +295,7 @@ class AppTheme {
           minimumSize: const Size.fromHeight(44),
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppRadius.md)),
-          textStyle: GoogleFonts.poppins(
+          textStyle: GoogleFonts.inter(
               fontSize: 14, fontWeight: FontWeight.w600),
         ),
       ),
@@ -303,7 +303,7 @@ class AppTheme {
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: brand,
-          textStyle: GoogleFonts.poppins(
+          textStyle: GoogleFonts.inter(
               fontSize: 13, fontWeight: FontWeight.w600),
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppRadius.sm)),
@@ -314,7 +314,7 @@ class AppTheme {
       chipTheme: ChipThemeData(
         backgroundColor: t.surfaceAlt,
         selectedColor: brand.withValues(alpha: .12),
-        labelStyle: GoogleFonts.poppins(
+        labelStyle: GoogleFonts.inter(
             fontSize: 12, fontWeight: FontWeight.w500),
         padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
@@ -335,12 +335,12 @@ class AppTheme {
         }),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return GoogleFonts.poppins(
+            return GoogleFonts.inter(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
                 color: brand);
           }
-          return GoogleFonts.poppins(
+          return GoogleFonts.inter(
               fontSize: 11,
               fontWeight: FontWeight.w500,
               color: t.textSecondary);

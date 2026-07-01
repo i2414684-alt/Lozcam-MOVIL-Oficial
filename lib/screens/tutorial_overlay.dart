@@ -46,16 +46,23 @@ Color _colorDe(AppArea a) {
   }
 }
 
+/// Interruptor global del auto-tutorial. DESACTIVADO por UX: se abría solo al
+/// entrar al panel y en web (Chrome usa un puerto distinto en cada `flutter
+/// run`, lo que reinicia el localStorage) reaparecía como una pantalla oscura.
+/// Cambia a `true` para reactivar el tutorial automático de bienvenida.
+bool tutorialAutomaticoHabilitado = false;
+
 /// Muestra el tutorial SOLO la primera vez para ese panel/rol.
 Future<void> mostrarTutorialSiPrimeraVez(
     BuildContext context, AppArea area) async {
+  if (!tutorialAutomaticoHabilitado) return; // auto-tutorial apagado
   final clave = area.name;
   if (LocalStore.tutorialVisto(clave)) return;
   await LocalStore.marcarTutorialVisto(clave); // garantiza "una sola vez"
   if (!context.mounted) return;
   await showDialog<void>(
     context: context,
-    barrierDismissible: false,
+    barrierDismissible: true, // tocar el fondo cierra el tutorial (no atrapa)
     builder: (_) => _TutorialDialog(area: area),
   );
 }

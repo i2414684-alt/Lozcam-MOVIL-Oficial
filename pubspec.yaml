@@ -33,6 +33,10 @@ dependencies:
   path_provider: ^2.1.0
   # Compartir/guardar el archivo generado (no hay "descargar" en móvil)
   share_plus: ^10.0.0
+  # Gráficas 2026 (líneas/barras) para los dashboards — MIT, sin licencia
+  fl_chart: ^0.69.0
+  # Micro-interacciones / animaciones premium (fade, slide, shimmer)
+  flutter_animate: ^4.5.0
 
 dev_dependencies:
   flutter_test:
