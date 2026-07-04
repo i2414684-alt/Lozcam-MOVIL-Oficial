@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'theme/colors.dart';
 import 'theme/app_theme.dart';
@@ -7,13 +9,35 @@ import 'core/supabase_client.dart';
 import 'core/auth_service.dart';
 import 'screens/login_screen.dart';
 import 'screens/shell_router.dart';
+import 'widgets/error_boundary.dart';
 
-Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await LocalStore.init(); // memoria interna del dispositivo
-  ThemeController.instance.cargar(); // preferencia de tema guardada
-  await initSupabase(); // nube (solo si hay credenciales en config.dart)
-  runApp(const LozcamApp());
+/// Arranque robusto: cualquier error de aquí en adelante (al construir una
+/// pantalla, o uno que se escape de un `Future` sin capturar) queda contenido
+/// y visible en vez de dejar la app congelada en blanco. Aplica a TODA la app:
+///  - `ErrorWidget.builder` reemplaza el cuadro gris/rojo por defecto por
+///    [AppErrorScreen] con opción de "Volver".
+///  - `runZonedGuarded` atrapa errores async no capturados para que no
+///    tumben la app ni la dejen en un estado inconsistente.
+void main() {
+  FlutterError.onError = (details) {
+    FlutterError.presentError(details);
+    if (kReleaseMode) debugPrint('Error de UI: ${details.exceptionAsString()}');
+  };
+  ErrorWidget.builder = (details) => AppErrorScreen(details: details);
+
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
+    try {
+      await LocalStore.init(); // memoria interna del dispositivo
+    } catch (e) {
+      debugPrint('LocalStore.init falló: $e');
+    }
+    ThemeController.instance.cargar(); // preferencia de tema guardada
+    await initSupabase(); // nube (solo si hay credenciales en config.dart)
+    runApp(const LozcamApp());
+  }, (error, stack) {
+    debugPrint('Error no capturado: $error\n$stack');
+  });
 }
 
 class LozcamApp extends StatelessWidget {

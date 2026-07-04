@@ -6,10 +6,11 @@ import '../../widgets/common.dart';
 import '../../models/models.dart';
 import '../../data/obras_repository.dart';
 import '../../data/asignaciones_repository.dart';
-import '../../data/informes_repository.dart';
+import '../../data/avance_repository.dart';
 
-/// Lista de obras con su avance real: trabajadores asignados y el último
-/// porcentaje reportado por el equipo (memoria interna, sin red).
+/// Lista de OBRAS reales (tabla `obras` de la nube), con trabajadores asignados
+/// y el último % de avance reportado. Es la misma fuente que el dashboard, por
+/// lo que aquí aparecen las mismas obras (antes leía áreas locales y salía vacía).
 class AdminObras extends StatefulWidget {
   const AdminObras({super.key});
   @override
@@ -17,12 +18,38 @@ class AdminObras extends StatefulWidget {
 }
 
 class _AdminObrasState extends State<AdminObras> {
-  Future<void> _refrescar() async => setState(() {});
+  List<Obra> _obras = [];
+  Map<int, int> _conteo = {};
+  final Map<int, int?> _pct = {}; // obra_id -> último % (null = sin reporte)
+  bool _cargando = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _cargar();
+  }
+
+  Future<void> _cargar() async {
+    final obras = await cargarObras();
+    final conteo = await conteoAsignadosPorObra();
+    final avances = await Future.wait(obras.map((o) => avancesDeObra(o.id)));
+    if (!mounted) return;
+    final pct = <int, int?>{};
+    for (var i = 0; i < obras.length; i++) {
+      pct[obras[i].id] = avances[i].isNotEmpty ? avances[i].first.pct : null;
+    }
+    setState(() {
+      _obras = obras;
+      _conteo = conteo;
+      _pct
+        ..clear()
+        ..addAll(pct);
+      _cargando = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final areas = areasLocales();
-
     return Column(children: [
       const PanelHeader(
           title: 'Obras',
@@ -31,19 +58,26 @@ class _AdminObrasState extends State<AdminObras> {
           icon: Icons.business_outlined),
       Expanded(
         child: RefreshIndicator(
-          onRefresh: _refrescar,
-          child: ListView(padding: const EdgeInsets.all(12), children: [
-            if (areas.isEmpty)
-              AppCard(
-                child: IconRow(
-                    icon: Icons.business_outlined,
-                    iconColor: context.tokens.textSecondary,
-                    title: 'No hay obras registradas',
-                    subtitle: 'Créalas en la pestaña "Áreas".'),
-              )
-            else
-              for (final a in areas) _tarjeta(a),
-          ]),
+          onRefresh: _cargar,
+          child: ListView(
+            padding: const EdgeInsets.all(12),
+            physics: const AlwaysScrollableScrollPhysics(),
+            children: [
+              if (_cargando)
+                const SkeletonList(count: 3)
+              else if (_obras.isEmpty)
+                AppCard(
+                  child: IconRow(
+                      icon: Icons.business_outlined,
+                      iconColor: context.tokens.textSecondary,
+                      title: 'No hay obras activas',
+                      subtitle:
+                          'No se pudieron leer obras de la base de datos.'),
+                )
+              else
+                for (final o in _obras) _tarjeta(o),
+            ],
+          ),
         ),
       ),
     ]);
@@ -51,10 +85,9 @@ class _AdminObrasState extends State<AdminObras> {
 
   Widget _tarjeta(Obra o) {
     final t = context.tokens;
-    final trabajadores = contarTrabajadoresArea(o.id);
-    final avances = informesDeObra(o.id);
-    final pct = avances.isNotEmpty ? avances.first.pct : 0;
-    final tone = avances.isEmpty
+    final trabajadores = _conteo[o.id] ?? 0;
+    final pct = _pct[o.id];
+    final tone = pct == null
         ? BadgeTone.neutral
         : pct >= 60
             ? BadgeTone.success
@@ -62,7 +95,6 @@ class _AdminObrasState extends State<AdminObras> {
                 ? BadgeTone.warning
                 : BadgeTone.danger;
 
-    // Tarjeta "Bento 2026": borde naranja sutil (0.18) + glow tenue del acento.
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.sm),
       decoration: BoxDecoration(
@@ -110,15 +142,13 @@ class _AdminObrasState extends State<AdminObras> {
             ]),
           ),
           const SizedBox(width: AppSpacing.sm),
-          AppBadge(avances.isEmpty ? 'Sin avance' : '$pct%', badgeTone: tone),
+          AppBadge(pct == null ? 'Sin avance' : '$pct%', badgeTone: tone),
         ]),
         const SizedBox(height: AppSpacing.md),
-        ProgressBar(pct),
+        ProgressBar(pct ?? 0),
         const SizedBox(height: AppSpacing.sm),
         Row(children: [
-          _chip(Icons.groups_2_outlined, '$trabajadores activo(s)'),
-          const SizedBox(width: AppSpacing.sm),
-          _chip(Icons.description_outlined, '${avances.length} reporte(s)'),
+          _chip(Icons.groups_2_outlined, '$trabajadores asignado(s)'),
           const Spacer(),
           Icon(Icons.chevron_right, size: 18, color: t.textSecondary),
         ]),

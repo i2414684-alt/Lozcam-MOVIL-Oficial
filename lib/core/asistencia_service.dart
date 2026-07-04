@@ -220,6 +220,53 @@ List<Map<String, dynamic>> registrosAsistenciaLocales() {
   return <Map<String, dynamic>>[];
 }
 
+/// Asistencias DETALLADAS de los últimos [dias] días de toda la empresa
+/// (para los reportes de gerencia). SOLO LECTURA. Cada item:
+/// { obra_id, perfil_id, fecha, hora_entrada, hora_salida }.
+/// Producción: tabla `asistencias`; sin nube: agrupa los registros locales
+/// por (fecha, perfil, obra) combinando entrada/salida.
+Future<List<Map<String, dynamic>>> asistenciasUltimosDias(int dias) async {
+  final d = DateTime.now().subtract(Duration(days: dias - 1));
+  final desde = '${d.year.toString().padLeft(4, '0')}-'
+      '${d.month.toString().padLeft(2, '0')}-'
+      '${d.day.toString().padLeft(2, '0')}';
+  if (supabaseListo) {
+    try {
+      final rows = await supabase
+          .from('asistencias')
+          .select('obra_id, perfil_id, fecha, hora_entrada, hora_salida')
+          .gte('fecha', desde)
+          .order('fecha', ascending: false);
+      return (rows as List)
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+    } catch (_) {
+      // cae a local
+    }
+  }
+  // Local: agrupar entrada/salida en una fila por (fecha, perfil, obra).
+  final porClave = <String, Map<String, dynamic>>{};
+  for (final r in registrosAsistenciaLocales()) {
+    final fecha = '${r['fecha']}';
+    if (fecha.compareTo(desde) < 0) continue;
+    final clave = '$fecha|${r['perfil_id']}|${r['obra_id']}';
+    final fila = porClave.putIfAbsent(
+        clave,
+        () => <String, dynamic>{
+              'obra_id': r['obra_id'],
+              'perfil_id': r['perfil_id'],
+              'fecha': fecha,
+              'hora_entrada': null,
+              'hora_salida': null,
+            });
+    if (r['tipo'] == 'entrada') fila['hora_entrada'] = r['hora'];
+    if (r['tipo'] == 'salida') fila['hora_salida'] = r['hora'];
+  }
+  final lista = porClave.values.toList()
+    ..sort((a, b) => '${b['fecha']}'.compareTo('${a['fecha']}'));
+  return lista;
+}
+
 /// Asistencias de HOY de toda la empresa (para gerencia). Cada item trae al
 /// menos { obra_id, perfil_id }. Producción: tabla `asistencias`; sin nube:
 /// registros locales de hoy con entrada.

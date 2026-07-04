@@ -40,13 +40,20 @@ class _AsignarTrabajadoresState extends State<AsignarTrabajadores> {
   }
 
   Future<void> _toggle(Persona p, bool valor) async {
-    if (valor) {
-      await asignar(
-          persona: p, areaId: widget.area.id, areaNombre: widget.area.nombre);
-      setState(() => _asignados.add(p.id));
-    } else {
-      await quitar(p.id, widget.area.id);
-      setState(() => _asignados.remove(p.id));
+    try {
+      if (valor) {
+        await asignar(
+            persona: p, areaId: widget.area.id, areaNombre: widget.area.nombre);
+        if (mounted) setState(() => _asignados.add(p.id));
+      } else {
+        await quitar(p.id, widget.area.id);
+        if (mounted) setState(() => _asignados.remove(p.id));
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('No se pudo actualizar la asignación. Intenta de nuevo.')));
+      }
     }
   }
 

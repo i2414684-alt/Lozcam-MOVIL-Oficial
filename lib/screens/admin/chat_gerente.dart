@@ -5,6 +5,7 @@ import '../../theme/app_theme.dart';
 import '../../core/descarga.dart';
 import '../../core/ia_service.dart';
 import '../../data/reporte_excel.dart';
+import '../../data/reporte_pdf.dart';
 
 /// Abre el asistente IA del gerente en una hoja inferior.
 void mostrarChatGerente(BuildContext context) {
@@ -51,17 +52,122 @@ class _ChatSheetState extends State<_ChatSheet> {
     super.dispose();
   }
 
-  /// Genera el reporte Excel desde los datos reales (sin IA) y abre la hoja de
-  /// compartir para guardarlo/enviarlo. Ante error, lo informa en el chat.
+  /// Selector de formato (Excel/PDF) + plantilla de diseño. El gerente ve una
+  /// muestra de color de cada plantilla. Devuelve null si se cierra.
+  Future<(FormatoReporte, PlantillaReporte)?> _elegirExportacion() {
+    final t = context.tokens;
+    var formato = FormatoReporte.excel;
+    return showModalBottomSheet<(FormatoReporte, PlantillaReporte)>(
+      context: context,
+      backgroundColor: t.surface,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) {
+          Widget opcion(PlantillaReporte p) {
+            final pal = paletaDe(p);
+            return ListTile(
+              leading: Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                    color: Color(pal.titulo),
+                    borderRadius: BorderRadius.circular(10)),
+                alignment: Alignment.center,
+                // Mini-preview: franja de "cabecera" + zebra de la plantilla
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Container(width: 22, height: 4, color: Color(pal.tituloTexto)),
+                  const SizedBox(height: 3),
+                  Container(width: 22, height: 4, color: Color(pal.zebra)),
+                  const SizedBox(height: 3),
+                  Container(width: 22, height: 4, color: Color(pal.zebra)),
+                ]),
+              ),
+              title: Text(plantillaLabel(p),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w600, fontSize: 14)),
+              subtitle: Text(plantillaDescripcion(p),
+                  style: TextStyle(fontSize: 11, color: t.textSecondary)),
+              onTap: () => Navigator.of(ctx).pop((formato, p)),
+            );
+          }
+
+          return SafeArea(
+            child: SingleChildScrollView(
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text('Exportar reporte',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w700, fontSize: 15)),
+                  ),
+                ),
+                // Formato de descarga
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: SegmentedButton<FormatoReporte>(
+                      segments: [
+                        for (final f in FormatoReporte.values)
+                          ButtonSegment(
+                            value: f,
+                            label: Text(formatoLabel(f),
+                                style: const TextStyle(fontSize: 12)),
+                            icon: Icon(
+                                f == FormatoReporte.excel
+                                    ? Icons.grid_on
+                                    : Icons.picture_as_pdf_outlined,
+                                size: 16),
+                          ),
+                      ],
+                      selected: {formato},
+                      onSelectionChanged: (s) =>
+                          setSheet(() => formato = s.first),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 2),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text('Elige el diseño de la plantilla',
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: t.textSecondary)),
+                  ),
+                ),
+                for (final p in PlantillaReporte.values) opcion(p),
+                const SizedBox(height: 10),
+              ]),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  /// Genera el reporte (Excel o PDF) desde los datos reales (sin IA) y abre la
+  /// descarga/compartir. Ante error, lo informa en el chat.
   Future<void> _exportar() async {
     if (_exportando) return;
+    final sel = await _elegirExportacion();
+    if (sel == null || !mounted) return;
+    final (formato, plantilla) = sel;
     setState(() => _exportando = true);
     try {
-      final bytes = await generarReporteExcel();
+      final bytes = formato == FormatoReporte.excel
+          ? await generarReporteExcel(plantilla: plantilla)
+          : await generarReportePdf(plantilla: plantilla);
       if (!mounted) return;
       // Fachada multiplataforma: en web descarga por el navegador; en móvil/
       // escritorio guarda y comparte. Devuelve el mensaje a mostrar.
-      final msg = await guardarODescargar(bytes, nombreArchivoReporte());
+      final msg = await guardarODescargar(
+          bytes, nombreArchivoReporte(ext: extensionDe(formato)));
       if (!mounted) return;
       setState(() {
         _exportando = false;
@@ -72,8 +178,8 @@ class _ChatSheetState extends State<_ChatSheet> {
       if (!mounted) return;
       setState(() {
         _exportando = false;
-        _msgs.add(_Msg(
-            false, 'No se pudo generar el reporte Excel.\nDetalle técnico: $e'));
+        _msgs.add(_Msg(false,
+            'No se pudo generar el reporte ${formatoLabel(formato)}.\nDetalle técnico: $e'));
       });
       _bajar();
     }
@@ -154,7 +260,7 @@ class _ChatSheetState extends State<_ChatSheet> {
                               strokeWidth: 2, color: Colors.white)),
                     )
                   : IconButton(
-                      tooltip: 'Exportar reporte a Excel',
+                      tooltip: 'Exportar reporte (Excel o PDF)',
                       icon: const Icon(Icons.file_download_outlined,
                           color: Colors.white),
                       onPressed: _exportar,

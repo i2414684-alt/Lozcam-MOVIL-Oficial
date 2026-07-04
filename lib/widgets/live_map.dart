@@ -61,6 +61,8 @@ class _LiveMapState extends State<LiveMap> {
   @override
   void initState() {
     super.initState();
+    // También en web: el navegador pide permiso de ubicación (requiere
+    // HTTPS o localhost). Si falla, se muestra la vista de error con Reintentar.
     if (widget.mostrarUsuario) {
       _iniciar();
     } else {
@@ -165,6 +167,8 @@ class _LiveMapState extends State<LiveMap> {
       child: SizedBox(
         height: widget.height,
         width: double.infinity,
+        // El mapa se dibuja también en web (tiles Carto con CORS habilitado).
+        // La vieja "no renderiza en navegador" era el bug de layout del tema.
         child: _error != null ? _vistaError() : _vistaMapa(),
       ),
     );
@@ -195,8 +199,13 @@ class _LiveMapState extends State<LiveMap> {
         ),
         children: [
           TileLayer(
-            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+            // Carto Voyager: CORS habilitado, carga bien en web (OSM directo
+            // deja el mapa en gris en el navegador).
+            urlTemplate:
+                'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
+            subdomains: const ['a', 'b', 'c', 'd'],
             userAgentPackageName: 'pe.lozcam.lozcam_movil',
+            errorTileCallback: (tile, error, stackTrace) {},
           ),
           if (hayObra)
             CircleLayer(circles: [

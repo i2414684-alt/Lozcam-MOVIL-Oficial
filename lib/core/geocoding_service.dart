@@ -36,6 +36,10 @@ class GeocodingService {
       'format': 'jsonv2',
       'limit': '6',
       'addressdetails': '0',
+      // Solo resultados de Perú: sin esto, "Jr. Loreto 240" devolvía
+      // coincidencias de Irlanda/otros países. Quitar si algún día se
+      // necesitan obras fuera del país.
+      'countrycodes': 'pe',
     });
     try {
       final res = await http

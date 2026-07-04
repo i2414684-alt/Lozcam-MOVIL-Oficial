@@ -97,15 +97,22 @@ class _AreaEditorState extends State<AreaEditor> {
       return;
     }
     setState(() => _guardando = true);
-    await guardarArea(
-      id: widget.area?.id,
-      nombre: _nombre.text.trim(),
-      lat: _punto!.latitude,
-      lng: _punto!.longitude,
-      radio: _radio,
-      direccion: _direccion,
-    );
-    if (mounted) Navigator.of(context).pop(true);
+    try {
+      await guardarArea(
+        id: widget.area?.id,
+        nombre: _nombre.text.trim(),
+        lat: _punto!.latitude,
+        lng: _punto!.longitude,
+        radio: _radio,
+        direccion: _direccion,
+      );
+      if (mounted) Navigator.of(context).pop(true);
+    } catch (_) {
+      if (mounted) {
+        setState(() => _guardando = false);
+        _aviso('No se pudo guardar el área. Intenta de nuevo.');
+      }
+    }
   }
 
   void _aviso(String m) => ScaffoldMessenger.of(context)
@@ -169,11 +176,15 @@ class _AreaEditorState extends State<AreaEditor> {
         const SizedBox(width: 8),
         SizedBox(
           height: 44,
+          width: 52, // ancho FIJO: dentro de un Row el ancho es no-acotado y
+          // un mínimo infinito (tema) rompía el layout → pantalla en blanco
           child: ElevatedButton(
             onPressed: _buscando ? null : _hacerBusqueda,
             style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.admin,
                 elevation: 0,
+                minimumSize: const Size(52, 44),
+                padding: EdgeInsets.zero,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12))),
             child: _buscando
@@ -221,6 +232,8 @@ class _AreaEditorState extends State<AreaEditor> {
   }
 
   Widget _mapaPicker() {
+    // Funciona también en web: los tiles de Carto permiten CORS (la vieja
+    // "pantalla en blanco" en web era un bug de layout del tema, no del mapa).
     return Stack(children: [
       FlutterMap(
         mapController: _map,
@@ -234,8 +247,13 @@ class _AreaEditorState extends State<AreaEditor> {
         ),
         children: [
           TileLayer(
-            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+            // Carto Voyager: CORS habilitado, carga bien en web (OSM directo
+            // deja el mapa en gris en el navegador).
+            urlTemplate:
+                'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
+            subdomains: const ['a', 'b', 'c', 'd'],
             userAgentPackageName: 'pe.lozcam.lozcam_movil',
+            errorTileCallback: (tile, error, stackTrace) {},
           ),
           if (_punto != null)
             CircleLayer(circles: [

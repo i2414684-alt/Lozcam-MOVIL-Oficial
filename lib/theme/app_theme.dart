@@ -267,7 +267,10 @@ class AppTheme {
         style: ElevatedButton.styleFrom(
           backgroundColor: brand,
           foregroundColor: const Color(0xFFFFFFFF),
-          minimumSize: const Size.fromHeight(48),
+          // OJO: nunca usar Size.fromHeight aquí — su ancho es infinito y
+          // revienta el layout de cualquier botón dentro de un Row (pantalla
+          // en blanco). Ancho completo = envolver en SizedBox(width: infinity).
+          minimumSize: const Size(64, 48),
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppRadius.md)),
           textStyle: GoogleFonts.inter(
@@ -280,7 +283,7 @@ class AppTheme {
         style: FilledButton.styleFrom(
           backgroundColor: brand,
           foregroundColor: const Color(0xFFFFFFFF),
-          minimumSize: const Size.fromHeight(48),
+          minimumSize: const Size(64, 48), // sin ancho infinito (ver arriba)
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppRadius.md)),
           textStyle: GoogleFonts.inter(
@@ -292,7 +295,7 @@ class AppTheme {
         style: OutlinedButton.styleFrom(
           foregroundColor: brand,
           side: BorderSide(color: brand.withValues(alpha: .5), width: 1.2),
-          minimumSize: const Size.fromHeight(44),
+          minimumSize: const Size(64, 44), // sin ancho infinito (ver arriba)
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppRadius.md)),
           textStyle: GoogleFonts.inter(

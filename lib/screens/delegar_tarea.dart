@@ -99,19 +99,26 @@ class _DelegarTareaState extends State<DelegarTarea> {
       return;
     }
     setState(() => _guardando = true);
-    await delegarTarea(
-      titulo: _titulo.text.trim(),
-      descripcion: _descripcion.text.trim(),
-      rolDestino: _rolDestino!,
-      prioridad: _prioridad,
-      asignadoAId: _persona?.id,
-      asignadoANombre: _persona?.nombre,
-      fechaEntrega: _fecha?.toIso8601String().substring(0, 10),
-      obraId: _obra?.id,
-      obraNombre: _obra?.nombre ?? '',
-      avancePct: _obra == null ? 0 : _avancePct,
-    );
-    if (mounted) Navigator.of(context).pop(true);
+    try {
+      await delegarTarea(
+        titulo: _titulo.text.trim(),
+        descripcion: _descripcion.text.trim(),
+        rolDestino: _rolDestino!,
+        prioridad: _prioridad,
+        asignadoAId: _persona?.id,
+        asignadoANombre: _persona?.nombre,
+        fechaEntrega: _fecha?.toIso8601String().substring(0, 10),
+        obraId: _obra?.id,
+        obraNombre: _obra?.nombre ?? '',
+        avancePct: _obra == null ? 0 : _avancePct,
+      );
+      if (mounted) Navigator.of(context).pop(true);
+    } catch (_) {
+      if (mounted) {
+        setState(() => _guardando = false);
+        _aviso('No se pudo delegar la tarea. Intenta de nuevo.');
+      }
+    }
   }
 
   void _aviso(String m) =>
