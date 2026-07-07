@@ -16,6 +16,21 @@ Color _darkenColor(Color c, [double amount = 0.12]) {
   return hsl.withLightness((hsl.lightness - amount).clamp(0.0, 1.0)).toColor();
 }
 
+Color _lightenColor(Color c, [double amount = 0.06]) {
+  final hsl = HSLColor.fromColor(c);
+  return hsl.withLightness((hsl.lightness + amount).clamp(0.0, 1.0)).toColor();
+}
+
+/// Gradiente "3D" sutil para superficies: simula luz cayendo desde arriba
+/// (borde superior más claro, base ligeramente más oscura). Se adapta al tema.
+LinearGradient _surface3d(Color bg, Brightness b) => LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: b == Brightness.light
+          ? [_lightenColor(bg, .02), _darkenColor(bg, .022)]
+          : [_lightenColor(bg, .035), bg],
+    );
+
 // ══════════════════════════════════════════════════════════════════════════════
 //  AppCard
 // ══════════════════════════════════════════════════════════════════════════════
@@ -131,6 +146,9 @@ class AppCard extends StatelessWidget {
         shadows = AppShadows.sm(brightness);
     }
 
+    // 3D: las variantes con superficie sólida usan gradiente de luz superior;
+    // la tonal (translúcida) se mantiene plana para no ensuciar el tinte.
+    final esSolida = _variant != _CardVariant.tonal;
     return AnimatedContainer(
       duration: AppMotion.base,
       curve: AppMotion.emphasized,
@@ -138,7 +156,8 @@ class AppCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: AppSpacing.sm),
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: bg,
+        color: esSolida ? null : bg,
+        gradient: esSolida ? _surface3d(bg, brightness) : null,
         borderRadius: BorderRadius.circular(AppRadius.xxl),
         border: Border.fromBorderSide(side),
         boxShadow: shadows,
@@ -330,19 +349,38 @@ class PanelHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dark = _darkenColor(color, 0.14);
     final initials = _initials(title);
+    const radioBase = Radius.circular(AppRadius.xxl + 4);
 
     return Container(
       constraints: const BoxConstraints(minHeight: 120),
       decoration: BoxDecoration(
+        // 3D: luz arriba-izquierda, sombra de color abajo (header "flotante").
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [color, dark],
+          stops: const [0, .45, 1],
+          colors: [
+            _lightenColor(color, 0.07),
+            color,
+            _darkenColor(color, 0.18),
+          ],
         ),
+        borderRadius: const BorderRadius.vertical(bottom: radioBase),
+        boxShadow: [
+          BoxShadow(
+              color: color.withValues(alpha: .35),
+              blurRadius: 22,
+              offset: const Offset(0, 10)),
+        ],
       ),
-      child: SafeArea(
+      child: ClipRRect(
+        borderRadius: const BorderRadius.vertical(bottom: radioBase),
+        child: Stack(children: [
+          // Brillos decorativos (dan volumen sin afectar el contenido)
+          Positioned(top: -46, right: -34, child: _brillo(150, .14)),
+          Positioned(bottom: -60, left: -44, child: _brillo(170, .08)),
+          SafeArea(
         bottom: false,
         child: Padding(
           padding: const EdgeInsets.symmetric(
@@ -393,6 +431,25 @@ class PanelHeader extends StatelessWidget {
                       color: Colors.white, size: 20),
                 ),
               ),
+          ]),
+        ),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  /// Círculo con brillo radial (decorativo, no intercepta toques).
+  Widget _brillo(double size, double alpha) {
+    return IgnorePointer(
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: RadialGradient(colors: [
+            Colors.white.withValues(alpha: alpha),
+            Colors.white.withValues(alpha: 0),
           ]),
         ),
       ),
@@ -492,56 +549,96 @@ class _PrimaryButtonState extends State<PrimaryButton>
           duration: AppMotion.fast,
           height: widget.height,
           decoration: BoxDecoration(
+            // 3D: luz arriba, base oscura + borde de luz + sombra de contacto
+            // y "glow" del color (botón con volumen real).
             gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [bg, _darkenColor(bg, 0.12)],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              stops: const [0, .5, 1],
+              colors: [
+                _lightenColor(bg, 0.09),
+                bg,
+                _darkenColor(bg, 0.14),
+              ],
             ),
             borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(
+                color: Colors.white.withValues(alpha: .22), width: 0.8),
             boxShadow: enabled
                 ? [
                     BoxShadow(
-                        color: bg.withValues(alpha: .35),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4))
+                        color: _darkenColor(bg, .25).withValues(alpha: .40),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2)),
+                    BoxShadow(
+                        color: bg.withValues(alpha: .38),
+                        blurRadius: 16,
+                        offset: const Offset(0, 7)),
                   ]
                 : null,
           ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(AppRadius.md),
-              onTap: enabled ? () {} : null,
-              child: Center(
-                child: AnimatedSwitcher(
-                  duration: AppMotion.base,
-                  child: widget.loading
-                      ? const SizedBox(
-                          key: ValueKey('loading'),
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white))
-                      : Row(
-                          key: const ValueKey('label'),
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (widget.icon != null) ...[
-                              Icon(widget.icon,
-                                  size: 20, color: Colors.white),
-                              const SizedBox(width: AppSpacing.sm),
-                            ],
-                            Text(widget.label,
-                                style: const TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.white)),
-                          ],
-                        ),
+          child: Stack(children: [
+            Positioned.fill(
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  onTap: enabled ? () {} : null,
+                  child: Center(
+                    child: AnimatedSwitcher(
+                      duration: AppMotion.base,
+                      child: widget.loading
+                          ? const SizedBox(
+                              key: ValueKey('loading'),
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white))
+                          : Row(
+                              key: const ValueKey('label'),
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (widget.icon != null) ...[
+                                  Icon(widget.icon,
+                                      size: 20, color: Colors.white),
+                                  const SizedBox(width: AppSpacing.sm),
+                                ],
+                                Text(widget.label,
+                                    style: const TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.white)),
+                              ],
+                            ),
+                    ),
+                  ),
                 ),
               ),
             ),
-          ),
+            // Gloss: reflejo superior tipo cristal (no intercepta toques).
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              height: widget.height * .48,
+              child: IgnorePointer(
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(AppRadius.md)),
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.white.withValues(alpha: .16),
+                        Colors.white.withValues(alpha: 0),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ]),
         ),
       ),
     );
@@ -642,7 +739,7 @@ class StatTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.lg),
         decoration: BoxDecoration(
-          color: t.surface,
+          gradient: _surface3d(t.surface, brightness),
           borderRadius: BorderRadius.circular(AppRadius.xxl),
           border: Border.all(color: t.border, width: 0.5),
           boxShadow: AppShadows.sm(brightness),
@@ -656,13 +753,32 @@ class StatTile extends StatelessWidget {
                   child:
                       Text(label.toUpperCase(), style: context.text.overline)),
               if (icon != null)
+                // Orbe 3D: esfera con gradiente + glow del color de acento
                 Container(
-                  padding: const EdgeInsets.all(5),
+                  width: 30,
+                  height: 30,
+                  alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: accent.withValues(alpha: .12),
-                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        _lightenColor(accent, .10),
+                        _darkenColor(accent, .12),
+                      ],
+                    ),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                        color: Colors.white.withValues(alpha: .25),
+                        width: 0.8),
+                    boxShadow: [
+                      BoxShadow(
+                          color: accent.withValues(alpha: .35),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3)),
+                    ],
                   ),
-                  child: Icon(icon, size: 14, color: accent),
+                  child: Icon(icon, size: 15, color: Colors.white),
                 ),
             ]),
             const SizedBox(height: AppSpacing.xs),
@@ -803,27 +919,55 @@ class AppBottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    return NavigationBar(
-      selectedIndex: currentIndex,
-      onDestinationSelected: onTap,
-      backgroundColor: t.surface,
-      indicatorColor: roleColor.withValues(alpha: .14),
-      surfaceTintColor: roleColor.withValues(alpha: .04),
-      elevation: 0,
-      destinations: items
-          .asMap()
-          .entries
-          .map((e) => NavigationDestination(
-                icon: Icon(e.value.icon,
-                    color: e.key == currentIndex
-                        ? roleColor
-                        : t.textSecondary),
-                selectedIcon:
-                    Icon(e.value.activeIcon ?? e.value.icon,
-                        color: roleColor),
-                label: e.value.label,
-              ))
-          .toList(),
+    final brightness = Theme.of(context).brightness;
+    // Dock flotante 3D: barra despegada del borde, con borde de luz del rol,
+    // sombra profunda y esquinas redondeadas (estilo 2026).
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+          AppSpacing.md, 0, AppSpacing.md, AppSpacing.sm),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(AppRadius.xxl + 2),
+          border: Border.all(
+              color: roleColor.withValues(alpha: .18), width: 1),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withValues(
+                    alpha: brightness == Brightness.light ? .10 : .50),
+                blurRadius: 20,
+                offset: const Offset(0, 8)),
+            BoxShadow(
+                color: roleColor.withValues(alpha: .10),
+                blurRadius: 26,
+                offset: const Offset(0, 10)),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(AppRadius.xxl + 2),
+          child: NavigationBar(
+            selectedIndex: currentIndex,
+            onDestinationSelected: onTap,
+            backgroundColor: t.surface,
+            indicatorColor: roleColor.withValues(alpha: .14),
+            surfaceTintColor: roleColor.withValues(alpha: .04),
+            elevation: 0,
+            destinations: items
+                .asMap()
+                .entries
+                .map((e) => NavigationDestination(
+                      icon: Icon(e.value.icon,
+                          color: e.key == currentIndex
+                              ? roleColor
+                              : t.textSecondary),
+                      selectedIcon:
+                          Icon(e.value.activeIcon ?? e.value.icon,
+                              color: roleColor),
+                      label: e.value.label,
+                    ))
+                .toList(),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -890,7 +1034,7 @@ class StatCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.md),
         decoration: BoxDecoration(
-            color: t.surface,
+            gradient: _surface3d(t.surface, brightness),
             borderRadius: BorderRadius.circular(AppRadius.md),
             border: Border.all(color: t.border, width: 0.5),
             boxShadow: AppShadows.sm(brightness)),

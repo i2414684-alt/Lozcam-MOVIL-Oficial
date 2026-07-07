@@ -128,6 +128,14 @@ class _AdminAreasState extends State<AdminAreas> {
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                     color: context.tokens.textPrimary)),
+            if (obraVinculadaDeArea(a.id) != null)
+              Text('Obra: ${obraVinculadaDeArea(a.id)!.nombre}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.brand)),
             if (a.direccion.isNotEmpty)
               Text(a.direccion,
                   maxLines: 1,

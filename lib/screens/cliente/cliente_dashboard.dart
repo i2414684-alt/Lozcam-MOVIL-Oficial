@@ -9,6 +9,8 @@ import '../../core/auth_service.dart';
 import '../../data/enums.dart';
 import '../../data/obras_repository.dart';
 import '../../data/avance_repository.dart';
+import '../mapa_calor.dart';
+import '../mapa_calor_obra.dart';
 import '../shell_router.dart';
 
 class ClienteDashboard extends StatefulWidget {
@@ -124,6 +126,27 @@ class _ClienteDashboardState extends State<ClienteDashboard> {
                                 '${obra.lng.toStringAsFixed(5)}'),
                       ]),
                 ),
+
+                // Avance graficado de SU obra (mapa de calor específico,
+                // solo lectura para el cliente)
+                SizedBox(
+                  width: double.infinity,
+                  child: PrimaryButton(
+                    label: 'Ver avance de mi proyecto',
+                    icon: Icons.local_fire_department,
+                    color: AppColors.roleCliente,
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                          builder: (_) => MapaCalorObraScreen(
+                              obra: obra, puedeEditar: false)),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+
+                // Actividad de hoy en la obra (quién trabaja / delegados)
+                ActividadAreasStrip(soloObras: [obra.id]),
+                const SizedBox(height: AppSpacing.sm),
 
                 // Mapa placeholder
                 ClipRRect(

@@ -7,6 +7,8 @@ import '../../models/models.dart';
 import '../../data/obras_repository.dart';
 import '../../data/asignaciones_repository.dart';
 import '../../data/avance_repository.dart';
+import 'obra_detalle.dart';
+import '../mapa_calor_obra.dart';
 
 /// Lista de OBRAS reales (tabla `obras` de la nube), con trabajadores asignados
 /// y el último % de avance reportado. Es la misma fuente que el dashboard, por
@@ -95,7 +97,11 @@ class _AdminObrasState extends State<AdminObras> {
                 ? BadgeTone.warning
                 : BadgeTone.danger;
 
-    return Container(
+    return GestureDetector(
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => ObraDetalle(obra: o)),
+      ),
+      child: Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.sm),
       decoration: BoxDecoration(
         color: t.surface,
@@ -150,9 +156,19 @@ class _AdminObrasState extends State<AdminObras> {
         Row(children: [
           _chip(Icons.groups_2_outlined, '$trabajadores asignado(s)'),
           const Spacer(),
+          // Mapa de calor ESPECÍFICO de esta obra (avance graficado)
+          IconButton(
+            tooltip: 'Mapa de calor de la obra',
+            visualDensity: VisualDensity.compact,
+            icon: const Icon(Icons.local_fire_department,
+                size: 20, color: AppColors.brand),
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => MapaCalorObraScreen(obra: o))),
+          ),
           Icon(Icons.chevron_right, size: 18, color: t.textSecondary),
         ]),
       ]),
+      ),
     );
   }
 

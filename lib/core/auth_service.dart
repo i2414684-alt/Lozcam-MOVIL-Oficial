@@ -164,28 +164,17 @@ class AuthService {
   }
 
   /// Inicia sesión con correo y contraseña.
-  /// Si se indica [panel], el rol del usuario DEBE corresponder a ese panel;
-  /// si no, se rechaza el ingreso (no se crea sesión) con "usuario inválido".
-  Future<SessionUser> ingresar(String email, String password,
-      {AppArea? panel}) async {
+  /// SEGURIDAD: el panel NO lo elige el usuario — se deriva SIEMPRE del rol
+  /// guardado en `profiles` (servidor). Manipular la app no permite entrar a
+  /// un panel ajeno porque `shellForSession` enruta por `SessionUser.area`.
+  Future<SessionUser> ingresar(String email, String password) async {
     final mail = email.trim();
     if (mail.isEmpty || password.isEmpty) {
       throw LoginError('Ingresa tu correo y tu contraseña.');
     }
-    final u =
-        supabaseListo ? await _ingresarNube(mail, password) : await _ingresarLocal(mail, password);
-
-    // El panel elegido debe coincidir con el rol real del usuario.
-    if (panel != null && u.area != panel) {
-      if (supabaseListo) {
-        try {
-          await supabase.auth.signOut();
-        } catch (_) {}
-      }
-      session = null;
-      throw LoginError(
-          'Usuario inválido para el panel de ${etiquetaArea(panel)}.');
-    }
+    final u = supabaseListo
+        ? await _ingresarNube(mail, password)
+        : await _ingresarLocal(mail, password);
 
     session = u;
     await LocalStore.guardarSesion(u.toJson());

@@ -20,7 +20,7 @@ Future<List<Obra>> cargarObras() async {
       final rows = await supabase
           .from('obras')
           .select(
-              'id, nombre, latitud, longitud, radio_metros, estado, activo, direccion')
+              'id, nombre, tipo_servicio, latitud, longitud, radio_metros, estado, activo, direccion')
           .eq('activo', true);
       return (rows as List)
           .map((r) => _obraDesdeRow(Map<String, dynamic>.from(r as Map)))
@@ -44,7 +44,7 @@ Future<Obra?> obraDelCliente() async {
       final rows = await supabase
           .from('obras')
           .select(
-              'id, nombre, latitud, longitud, radio_metros, estado, activo, direccion')
+              'id, nombre, tipo_servicio, latitud, longitud, radio_metros, estado, activo, direccion')
           .eq('cliente_id', cid)
           .eq('activo', true)
           .limit(1);
@@ -60,11 +60,90 @@ Future<Obra?> obraDelCliente() async {
   return locales.isNotEmpty ? locales.first : null;
 }
 
+/// Fase de una obra (tabla real `fases_obra`), para la línea de tiempo del
+/// detalle del proyecto. SOLO LECTURA.
+class FaseObra {
+  final String nombre;
+  final String estado;
+  final int orden;
+  final int pctMeta;
+  const FaseObra(this.nombre, this.estado, this.orden, this.pctMeta);
+}
+
+/// Fases de la obra ordenadas. Si la tabla no se puede leer (RLS/offline),
+/// devuelve lista vacía y la pantalla usa los avances como línea de tiempo.
+Future<List<FaseObra>> fasesDeObra(int obraId) async {
+  if (!supabaseListo) return const [];
+  try {
+    final rows = await supabase
+        .from('fases_obra')
+        .select('nombre, orden, estado, porcentaje_meta')
+        .eq('obra_id', obraId)
+        .order('orden', ascending: true);
+    return (rows as List).map((e) {
+      final m = Map<String, dynamic>.from(e as Map);
+      return FaseObra(
+        (m['nombre'] ?? 'Fase') as String,
+        (m['estado'] ?? '') as String,
+        _aInt(m['orden'], 0),
+        _aInt(m['porcentaje_meta'], 0),
+      );
+    }).toList();
+  } catch (_) {
+    return const [];
+  }
+}
+
+/// Fila COMPLETA de la obra (select *), tolerante a columnas que no conocemos
+/// de antemano (fechas, tipo_servicio...). null si no se puede leer.
+Future<Map<String, dynamic>?> filaObraCompleta(int obraId) async {
+  if (!supabaseListo) return null;
+  try {
+    final row = await supabase
+        .from('obras')
+        .select('*')
+        .eq('id', obraId)
+        .maybeSingle();
+    return row == null ? null : Map<String, dynamic>.from(row);
+  } catch (_) {
+    return null;
+  }
+}
+
+/// Presupuesto de la obra desde la tabla real `presupuestos` (si existe una
+/// fila para la obra). Se busca el primer campo numérico razonable sin asumir
+/// el nombre exacto de la columna. null = sin dato legible.
+Future<double?> presupuestoDeObra(int obraId) async {
+  if (!supabaseListo) return null;
+  try {
+    final rows = await supabase
+        .from('presupuestos')
+        .select('*')
+        .eq('obra_id', obraId)
+        .limit(1);
+    final lista = rows as List;
+    if (lista.isEmpty) return null;
+    final m = Map<String, dynamic>.from(lista.first as Map);
+    for (final k in const [
+      'monto_total', 'monto', 'total', 'importe', 'presupuesto', 'valor'
+    ]) {
+      final v = m[k];
+      final d = _aDouble(v, double.nan);
+      if (v != null && !d.isNaN && d > 0) return d;
+    }
+    return null;
+  } catch (_) {
+    return null;
+  }
+}
+
 /// Áreas de trabajo definidas por el gerente (memoria interna).
 List<Obra> areasLocales() =>
     LocalStore.areas().map(_obraDesdeArea).toList();
 
 /// Crea o actualiza un área de trabajo (geolocalización del gerente).
+/// [obraId]/[obraNombre]: obra de la BD a la que pertenece el área — así el
+/// área tiene sentido dentro del flujo real (obra -> área -> asistencia).
 Future<void> guardarArea({
   int? id,
   required String nombre,
@@ -72,6 +151,8 @@ Future<void> guardarArea({
   required double lng,
   required int radio,
   String? direccion,
+  int? obraId,
+  String? obraNombre,
 }) async {
   await LocalStore.guardarArea({
     'id': id ?? DateTime.now().millisecondsSinceEpoch,
@@ -80,7 +161,22 @@ Future<void> guardarArea({
     'lng': lng,
     'radio': radio,
     'direccion': direccion ?? '',
+    'obra_id': obraId,
+    'obra_nombre': obraNombre ?? '',
   });
+}
+
+/// Obra vinculada a un área (id y nombre), o null si no tiene.
+({int id, String nombre})? obraVinculadaDeArea(int areaId) {
+  for (final a in LocalStore.areas()) {
+    if (_aInt(a['id'], -1) == areaId && a['obra_id'] != null) {
+      return (
+        id: _aInt(a['obra_id'], 0),
+        nombre: (a['obra_nombre'] ?? '').toString(),
+      );
+    }
+  }
+  return null;
 }
 
 Future<void> eliminarArea(int id) => LocalStore.eliminarArea(id);
@@ -120,7 +216,7 @@ Obra _obraDesdeArea(Map<String, dynamic> a) => Obra(
 Obra _obraDesdeRow(Map<String, dynamic> r) => Obra(
       _aInt(r['id'], 0),
       (r['nombre'] ?? 'Obra') as String,
-      '',
+      (r['tipo_servicio'] ?? '').toString(), // lo que pidió el cliente
       '',
       (r['estado'] ?? 'en_ejecucion') as String,
       0,

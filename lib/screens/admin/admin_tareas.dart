@@ -4,6 +4,7 @@ import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
 import '../../data/tareas_repository.dart';
 import '../delegar_tarea.dart';
+import '../mapa_calor.dart';
 
 /// Consola de delegación y monitoreo de tareas (gerencia ve TODAS).
 class AdminTareas extends StatefulWidget {
@@ -46,6 +47,9 @@ class _AdminTareasState extends State<AdminTareas> {
           icon: Icons.checklist),
       Expanded(
         child: ListView(padding: const EdgeInsets.all(12), children: [
+          // Actividad en vivo por área (mapa de calor): presentes, tareas, avance
+          const ActividadAreasStrip(),
+          const SizedBox(height: 8),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(

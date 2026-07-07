@@ -31,6 +31,11 @@ class _AreaEditorState extends State<AreaEditor> {
   bool _guardando = false;
   bool _mapListo = false;
 
+  // Obra (de la BD) a la que pertenece esta área: el flujo real es
+  // obra -> área de trabajo -> asistencia, así el área tiene contexto.
+  List<Obra> _obras = [];
+  Obra? _obraSel;
+
   static const LatLng _fallback = LatLng(-12.0653, -75.2049); // Huancayo
 
   @override
@@ -43,6 +48,46 @@ class _AreaEditorState extends State<AreaEditor> {
       _radio = a.radioMetros;
       if (a.direccion.isNotEmpty) _direccion = a.direccion;
     }
+    _cargarObras();
+  }
+
+  Future<void> _cargarObras() async {
+    final obras = await cargarObras();
+    if (!mounted) return;
+    Obra? sel;
+    final a = widget.area;
+    if (a != null) {
+      final vinculo = obraVinculadaDeArea(a.id);
+      if (vinculo != null) {
+        for (final o in obras) {
+          if (o.id == vinculo.id) sel = o;
+        }
+      }
+    }
+    setState(() {
+      _obras = obras;
+      _obraSel = sel;
+    });
+  }
+
+  static bool _coordsValidas(Obra o) =>
+      !(o.lat.abs() < 0.0001 && o.lng.abs() < 0.0001) &&
+      o.lat >= -90 && o.lat <= 90 && o.lng >= -180 && o.lng <= 180;
+
+  /// Al elegir obra: muestra su dirección y, si el punto aún no está fijado,
+  /// arranca desde las coordenadas de la obra (menos trabajo para el gerente).
+  void _elegirObra(Obra? o) {
+    setState(() {
+      _obraSel = o;
+      if (o != null) {
+        if (_nombre.text.trim().isEmpty) _nombre.text = 'Área · ${o.nombre}';
+        if (_punto == null && _coordsValidas(o)) {
+          _punto = LatLng(o.lat, o.lng);
+          if (o.direccion.isNotEmpty) _direccion = o.direccion;
+        }
+      }
+    });
+    if (o != null && _punto != null && _mapListo) _map.move(_punto!, 16);
   }
 
   @override
@@ -92,6 +137,12 @@ class _AreaEditorState extends State<AreaEditor> {
       _aviso('Ponle un nombre al área.');
       return;
     }
+    // Regla: si hay obras en la BD, el área debe pertenecer a una (el flujo
+    // real es obra -> área). Sin obras (modo offline) se permite sin vínculo.
+    if (_obras.isNotEmpty && _obraSel == null) {
+      _aviso('Selecciona la obra a la que pertenece esta área.');
+      return;
+    }
     if (_punto == null) {
       _aviso('Fija la ubicación: busca una dirección o toca el mapa.');
       return;
@@ -105,6 +156,8 @@ class _AreaEditorState extends State<AreaEditor> {
         lng: _punto!.longitude,
         radio: _radio,
         direccion: _direccion,
+        obraId: _obraSel?.id,
+        obraNombre: _obraSel?.nombre,
       );
       if (mounted) Navigator.of(context).pop(true);
     } catch (_) {
@@ -142,10 +195,63 @@ class _AreaEditorState extends State<AreaEditor> {
         ],
       ),
       body: Column(children: [
+        _selectorObra(),
         _buscador(),
         if (_resultados.isNotEmpty) _listaResultados(),
         Expanded(child: _mapaPicker()),
         _panelInferior(),
+      ]),
+    );
+  }
+
+  /// Obra (BD) a la que pertenece el área. Al elegirla se muestra su
+  /// dirección registrada — antes de fijar la nueva área de trabajo.
+  Widget _selectorObra() {
+    final t = context.tokens;
+    if (_obras.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: t.surface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: t.border, width: 0.8),
+          ),
+          child: DropdownButton<Obra>(
+            value: _obraSel,
+            isExpanded: true,
+            underline: const SizedBox.shrink(),
+            hint: const Text('Obra a la que pertenece esta área',
+                style: TextStyle(fontSize: 13)),
+            items: [
+              for (final o in _obras)
+                DropdownMenuItem(
+                    value: o,
+                    child: Text(o.nombre,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 13))),
+            ],
+            onChanged: _elegirObra,
+          ),
+        ),
+        if (_obraSel != null && _obraSel!.direccion.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 4, left: 2),
+            child: Row(children: [
+              Icon(Icons.place_outlined, size: 13, color: t.brand),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(_obraSel!.direccion,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style:
+                        TextStyle(fontSize: 11, color: t.textSecondary)),
+              ),
+            ]),
+          ),
       ]),
     );
   }

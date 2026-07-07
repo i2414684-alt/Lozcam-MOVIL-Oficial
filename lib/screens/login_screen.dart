@@ -26,23 +26,10 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _email = TextEditingController();
   final _pass  = TextEditingController();
-  AppArea _panel   = AppArea.operativo;
   bool _cargando   = false;
   bool _verPass    = false;
   bool _verCuentas = false;
   String? _error;
-
-  static const _opciones = <(AppArea, String, IconData, Color)>[
-    (AppArea.gerencia,  'Gerencia',    Icons.admin_panel_settings_outlined, AppColors.roleAdmin),
-    (AppArea.operativo, 'Trabajador',  Icons.engineering_outlined,          AppColors.roleEmpleado),
-    (AppArea.cliente,   'Cliente',     Icons.business_outlined,             AppColors.roleCliente),
-  ];
-
-  Color get _rolColor => switch (_panel) {
-        AppArea.gerencia  => AppColors.roleAdmin,
-        AppArea.operativo => AppColors.roleEmpleado,
-        AppArea.cliente   => AppColors.roleCliente,
-      };
 
   @override
   void dispose() {
@@ -51,6 +38,9 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  /// SEGURIDAD: el panel NO se elige en el cliente. Se deriva del rol real
+  /// guardado en `profiles` (servidor) tras autenticar; un usuario no puede
+  /// entrar a un panel que no le corresponde aunque manipule la app.
   Future<void> _ingresar() async {
     FocusScope.of(context).unfocus();
     setState(() {
@@ -58,8 +48,8 @@ class _LoginScreenState extends State<LoginScreen> {
       _error    = null;
     });
     try {
-      final user = await AuthService.instance
-          .ingresar(_email.text, _pass.text, panel: _panel);
+      final user =
+          await AuthService.instance.ingresar(_email.text, _pass.text);
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => shellForSession(user)),
@@ -197,15 +187,9 @@ class _LoginScreenState extends State<LoginScreen> {
         boxShadow: AppShadows.md(brightness),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Ingresar como', style: context.text.overline),
-        const SizedBox(height: AppSpacing.sm),
-        // Selector de panel
-        Row(
-          children: [
-            for (final o in _opciones)
-              Expanded(child: _opcionPanel(o.$1, o.$2, o.$3, o.$4, t)),
-          ],
-        ),
+        // Sin selector de panel: el sistema detecta tu rol con el correo y te
+        // lleva directo a tu panel (gerencia / trabajador / cliente).
+        Text('Inicia sesión', style: context.text.overline),
         const SizedBox(height: AppSpacing.lg),
         _LoginField(
           controller: _email,
@@ -254,57 +238,9 @@ class _LoginScreenState extends State<LoginScreen> {
             label: 'Ingresar',
             onPressed: _cargando ? null : _ingresar,
             loading: _cargando,
-            color: _rolColor,
           ),
         ),
       ]),
-    );
-  }
-
-  Widget _opcionPanel(
-      AppArea area, String label, IconData icon, Color color, AppTokens t) {
-    final sel = _panel == area;
-    return GestureDetector(
-      onTap: _cargando ? null : () => setState(() => _panel = area),
-      child: AnimatedContainer(
-        duration: AppMotion.base,
-        curve: AppMotion.emphasized,
-        margin: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
-        padding: const EdgeInsets.symmetric(
-            vertical: AppSpacing.md, horizontal: AppSpacing.xs),
-        decoration: BoxDecoration(
-          gradient: sel
-              ? LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [color, _darken(color, 0.18)])
-              : null,
-          color: sel ? null : t.surfaceAlt,
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          border: sel
-              ? null
-              : Border.all(color: t.border, width: 1),
-          boxShadow: sel
-              ? [
-                  BoxShadow(
-                      color: color.withValues(alpha: 0.35),
-                      blurRadius: 8,
-                      offset: const Offset(0, 3))
-                ]
-              : null,
-        ),
-        child: Column(children: [
-          Icon(icon,
-              size: 21,
-              color: sel ? t.onBrand : t.textSecondary),
-          const SizedBox(height: AppSpacing.xs),
-          Text(label,
-              style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: sel ? t.onBrand : t.textSecondary)),
-        ]),
-      ),
     );
   }
 
@@ -366,7 +302,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           onTap: () => setState(() {
                             _email.text = u['email'] as String;
                             _pass.text  = (u['password'] ?? '') as String;
-                            _panel      = areaDeRol('${u['rol']}');
                           }),
                           child: Text(
                             '${u['email']}  ·  ${u['password']}',

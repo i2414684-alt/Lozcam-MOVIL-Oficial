@@ -3,9 +3,11 @@ import '../../theme/colors.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
 import '../../core/auth_service.dart';
+import '../../data/asignaciones_repository.dart';
 import '../../data/roles.dart';
 import '../../data/tareas_repository.dart';
 import '../delegar_tarea.dart';
+import '../mapa_calor.dart';
 
 /// Tareas del trabajador: ve las dirigidas a SU rol, actualiza su estado y,
 /// si su rol puede delegar (jefatura/mando), delega hacia su área.
@@ -18,10 +20,31 @@ class EmpleadoTareas extends StatefulWidget {
 class _EmpleadoTareasState extends State<EmpleadoTareas> {
   List<TareaAsignada> _tareas = [];
 
+  /// Áreas visibles en la tira de actividad SEGÚN JERARQUÍA:
+  /// null = todas (jefaturas/mandos que monitorean); lista = solo las suyas.
+  List<int>? _obrasVisibles;
+  bool _actividadLista = false;
+
   @override
   void initState() {
     super.initState();
     _cargar();
+    _cargarVisibilidad();
+  }
+
+  Future<void> _cargarVisibilidad() async {
+    final s = AuthService.instance.session;
+    final nivel = s?.nivel ?? 9;
+    List<int>? visibles;
+    if (nivel > 3 && s != null) {
+      // Personal de campo/técnico: solo sus áreas asignadas.
+      visibles = await obrasAsignadasA(s.id);
+    }
+    if (!mounted) return;
+    setState(() {
+      _obrasVisibles = visibles; // null = jefatura, ve todas
+      _actividadLista = true;
+    });
   }
 
   void _cargar() {
@@ -66,6 +89,12 @@ class _EmpleadoTareasState extends State<EmpleadoTareas> {
           icon: Icons.checklist),
       Expanded(
         child: ListView(padding: const EdgeInsets.all(12), children: [
+          // Actividad por área (mapa de calor) — jefaturas ven todas las
+          // áreas; personal de campo solo las suyas.
+          if (_actividadLista) ...[
+            ActividadAreasStrip(soloObras: _obrasVisibles),
+            const SizedBox(height: 8),
+          ],
           if (puedeDelegar)
             SizedBox(
               width: double.infinity,
