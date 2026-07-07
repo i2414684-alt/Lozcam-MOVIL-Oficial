@@ -4,10 +4,16 @@ import 'dart:typed_data';
 
 const _xlsxMime =
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+const _pdfMime = 'application/pdf';
+
+/// Mismo `guardarODescargar` sirve para exportar Excel y PDF: el mime debe
+/// seguir la extensión real del archivo, no asumir siempre xlsx.
+String _mimeDe(String nombre) =>
+    nombre.toLowerCase().endsWith('.pdf') ? _pdfMime : _xlsxMime;
 
 /// Web: crea un Blob con los bytes y dispara la descarga del navegador.
 Future<String> guardarODescargar(List<int> bytes, String nombre) async {
-  final blob = html.Blob([Uint8List.fromList(bytes)], _xlsxMime);
+  final blob = html.Blob([Uint8List.fromList(bytes)], _mimeDe(nombre));
   final url = html.Url.createObjectUrlFromBlob(blob);
   final anchor = html.AnchorElement(href: url)..download = nombre;
   html.document.body!.append(anchor);

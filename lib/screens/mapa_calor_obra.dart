@@ -340,6 +340,8 @@ class _MapaCalorObraScreenState extends State<MapaCalorObraScreen> {
           ),
         ),
         const SizedBox(height: 8),
+        _leyendaCalor(t),
+        const SizedBox(height: 10),
         ClipRRect(
           borderRadius: BorderRadius.circular(4),
           child: LinearProgressIndicator(
@@ -351,6 +353,25 @@ class _MapaCalorObraScreenState extends State<MapaCalorObraScreen> {
         ),
       ]),
     );
+  }
+
+  /// Leyenda del mapa de intensidad: barra con la rampa térmica estándar
+  /// (azul → verde → amarillo → rojo) de "Baja" a "Alta".
+  Widget _leyendaCalor(AppTokens t) {
+    return Row(children: [
+      Text('Baja', style: TextStyle(fontSize: 10, color: t.textSecondary)),
+      Expanded(
+        child: Container(
+          height: 6,
+          margin: const EdgeInsets.symmetric(horizontal: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadius.pill),
+            gradient: const LinearGradient(colors: heatRampColors),
+          ),
+        ),
+      ),
+      Text('Alta', style: TextStyle(fontSize: 10, color: t.textSecondary)),
+    ]);
   }
 
   /// Días trabajados graficados (intensidad de calor por día, sin texto).
@@ -369,11 +390,30 @@ class _MapaCalorObraScreenState extends State<MapaCalorObraScreen> {
                   Container(
                     height: 34,
                     decoration: BoxDecoration(
-                      color: _calorDias[i] > 0
-                          ? AppColors.brand
-                              .withValues(alpha: .15 + .75 * _calorDias[i])
-                          : t.surfaceAlt,
                       borderRadius: BorderRadius.circular(8),
+                      color: _calorDias[i] > 0 ? null : t.surfaceAlt,
+                      gradient: _calorDias[i] > 0
+                          ? LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                colorTermico(_calorDias[i])
+                                    .withValues(alpha: .90),
+                                colorTermico(_calorDias[i])
+                                    .withValues(alpha: .45),
+                              ],
+                            )
+                          : null,
+                      boxShadow: _calorDias[i] > 0
+                          ? [
+                              BoxShadow(
+                                color: colorTermico(_calorDias[i])
+                                    .withValues(alpha: .35),
+                                blurRadius: 10,
+                                spreadRadius: -2,
+                              ),
+                            ]
+                          : null,
                     ),
                   ),
                   const SizedBox(height: 3),

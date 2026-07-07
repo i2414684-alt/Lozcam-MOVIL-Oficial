@@ -12,6 +12,23 @@ import '../data/diseno_obra.dart';
 ///  Encima se pintan manchas de CALOR según los días trabajados ([calorDias]).
 /// ============================================================================
 
+/// Rampa térmica estándar (fría → caliente): azul · verde · amarillo · rojo.
+/// Se usa tanto para pintar las manchas de calor como para la leyenda.
+const List<Color> heatRampColors = [
+  Color(0xFF2979FF), // azul — baja intensidad
+  Color(0xFF00BFA5), // verde-azulado
+  Color(0xFFFFD600), // amarillo
+  Color(0xFFFF3D00), // rojo — alta intensidad
+];
+
+/// Interpola un color de [heatRampColors] según la intensidad [w] (0..1).
+Color colorTermico(double w) {
+  final t = w.clamp(0.0, 1.0) * (heatRampColors.length - 1);
+  final i = t.floor().clamp(0, heatRampColors.length - 2);
+  final f = t - i;
+  return Color.lerp(heatRampColors[i], heatRampColors[i + 1], f)!;
+}
+
 class DisenoProgresivo extends StatelessWidget {
   final FaseDiseno fase;
   final double progreso; // 0..1
@@ -348,9 +365,13 @@ class _DisenoPainter extends CustomPainter {
         Rect.fromCircle(center: a, radius: r), 0, math.pi / 2, false, paint);
   }
 
-  /// Manchas de calor TÉRMICAS: núcleo blanco incandescente -> naranja ->
-  /// transparente (como cámara termográfica). Un foco por día trabajado,
-  /// posición determinística e intensidad según cuánto se trabajó ese día.
+  /// Manchas de calor TÉRMICAS con la rampa estándar azul→verde→amarillo→rojo
+  /// (como cámara termográfica). Un foco por día trabajado, posición
+  /// determinística e intensidad según cuánto se trabajó ese día. Cada foco
+  /// se pinta en dos capas —halo externo muy difuso y cuerpo con núcleo
+  /// luminoso— para que las zonas se fusionen de forma orgánica y sin bordes
+  /// duros: las de baja intensidad quedan translúcidas y extensas (azul/
+  /// verde), las de máxima intensidad quedan densas y luminosas (rojo).
   void _manchasCalor(Canvas canvas, Size size) {
     for (var i = 0; i < calorDias.length; i++) {
       final w = calorDias[i];
@@ -362,6 +383,23 @@ class _DisenoPainter extends CustomPainter {
         size.width * (0.5 + rad * math.cos(ang)),
         size.height * (0.5 + rad * math.sin(ang)),
       );
+      final color = colorTermico(w);
+
+      // 1) Halo externo: muy extenso, muy translúcido y muy desenfocado ->
+      //    difusión suave que se fusiona con los focos vecinos.
+      final radioHalo = size.shortestSide * (0.22 + 0.30 * w);
+      canvas.drawCircle(
+          c,
+          radioHalo,
+          Paint()
+            ..shader = RadialGradient(colors: [
+              color.withValues(alpha: .10 + .12 * w),
+              color.withValues(alpha: 0),
+            ]).createShader(Rect.fromCircle(center: c, radius: radioHalo))
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 14));
+
+      // 2) Cuerpo + núcleo: degradado radial en el color de la rampa térmica,
+      //    con centro más blanco/luminoso cuanto mayor la intensidad.
       final radio = size.shortestSide * (0.12 + 0.16 * w);
       final rect = Rect.fromCircle(center: c, radius: radio);
       canvas.drawCircle(
@@ -370,14 +408,14 @@ class _DisenoPainter extends CustomPainter {
           Paint()
             ..shader = RadialGradient(
               colors: [
-                Colors.white.withValues(alpha: .12 + .38 * w),
-                _lighten(acento, .08).withValues(alpha: .12 + .30 * w),
-                acento.withValues(alpha: .06 + .16 * w),
-                acento.withValues(alpha: 0),
+                Colors.white.withValues(alpha: .16 + .30 * w),
+                color.withValues(alpha: .24 + .30 * w),
+                color.withValues(alpha: .08 + .14 * w),
+                color.withValues(alpha: 0),
               ],
-              stops: const [0, .25, .55, 1],
+              stops: const [0, .30, .60, 1],
             ).createShader(rect)
-            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6));
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7));
     }
   }
 

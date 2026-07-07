@@ -4,6 +4,12 @@ import 'package:share_plus/share_plus.dart';
 
 const _xlsxMime =
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+const _pdfMime = 'application/pdf';
+
+/// Mismo `guardarODescargar` sirve para exportar Excel y PDF: el mime debe
+/// seguir la extensión real del archivo, no asumir siempre xlsx.
+String _mimeDe(String nombre) =>
+    nombre.toLowerCase().endsWith('.pdf') ? _pdfMime : _xlsxMime;
 
 /// Móvil/escritorio: guarda el archivo en la carpeta temporal y abre el diálogo
 /// de compartir. Si compartir no está disponible (típico en escritorio), guarda
@@ -14,10 +20,10 @@ Future<String> guardarODescargar(List<int> bytes, String nombre) async {
     final ruta = '${dir.path}/$nombre';
     await File(ruta).writeAsBytes(bytes, flush: true);
     await Share.shareXFiles(
-      [XFile(ruta, mimeType: _xlsxMime)],
+      [XFile(ruta, mimeType: _mimeDe(nombre))],
       subject: 'Reporte LOZCAM',
     );
-    return 'Reporte Excel generado. Elige dónde compartirlo o guardarlo.';
+    return 'Reporte generado. Elige dónde compartirlo o guardarlo.';
   } catch (_) {
     final home =
         Platform.environment['USERPROFILE'] ?? Platform.environment['HOME'];
