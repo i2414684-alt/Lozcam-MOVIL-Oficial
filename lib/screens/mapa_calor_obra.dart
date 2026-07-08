@@ -5,7 +5,7 @@ import '../theme/app_theme.dart';
 import '../theme/tokens.dart';
 import '../widgets/common.dart';
 import '../widgets/charts.dart';
-import '../widgets/diseno_progresivo.dart';
+import '../widgets/diseno_3d.dart';
 import '../models/models.dart';
 import '../data/actividad_areas.dart';
 import '../data/avance_repository.dart';
@@ -328,9 +328,8 @@ class _MapaCalorObraScreenState extends State<MapaCalorObraScreen> {
         const SizedBox(height: 10),
         ClipRRect(
           borderRadius: BorderRadius.circular(AppRadius.lg),
-          child: DisenoProgresivo(
+          child: Diseno3D(
             fase: fases[i],
-            progreso: p,
             calorDias: _calorDias,
             acento: AppColors.brand,
             guia: t.textSecondary,
