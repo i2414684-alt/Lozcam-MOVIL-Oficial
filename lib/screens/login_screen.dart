@@ -32,6 +32,15 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _error;
 
   @override
+  void initState() {
+    super.initState();
+    // Si el auto-login se cortó por un motivo explicable (usuario inactivo),
+    // se muestra aquí. Antes el error se perdía y el usuario volvía al login
+    // sin ninguna explicación, reintentando en bucle.
+    _error = AuthService.instance.tomarAvisoArranque();
+  }
+
+  @override
   void dispose() {
     _email.dispose();
     _pass.dispose();
@@ -123,13 +132,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: [
                       _logo(t),
                       const SizedBox(height: AppSpacing.lg),
+                      // Tipografía real de la app (Lexend). Antes pedía
+                      // 'Poppins', que no está declarada en pubspec.yaml ni
+                      // cargada por google_fonts: caía en silencio a la fuente
+                      // del sistema y no coincidía con el resto de la app.
                       Text('Lozcam',
-                          style: TextStyle(
-                              fontSize: 30,
-                              fontWeight: FontWeight.w800,
-                              color: t.textPrimary,
-                              letterSpacing: -0.5,
-                              fontFamily: 'Poppins')),
+                          style: context.text.display.copyWith(
+                              fontSize: 30, fontWeight: FontWeight.w800)),
                       const SizedBox(height: 2),
                       Text('Sistema de Gestión de Obras',
                           style: context.text.caption),
@@ -168,11 +177,8 @@ class _LoginScreenState extends State<LoginScreen> {
         ],
       ),
       child: Text('L',
-          style: TextStyle(
-              fontSize: 36,
-              fontWeight: FontWeight.w800,
-              color: t.onBrand,
-              fontFamily: 'Poppins')),
+          style: AppTypography.display(t.onBrand)
+              .copyWith(fontSize: 36, fontWeight: FontWeight.w800)),
     );
   }
 

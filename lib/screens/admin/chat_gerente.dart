@@ -237,7 +237,7 @@ class _ChatSheetState extends State<_ChatSheet> {
           Container(
             padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
             decoration: const BoxDecoration(
-              color: AppColors.admin,
+              color: AppColors.roleAdmin,
               borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
             ),
             child: Row(children: [
@@ -329,7 +329,7 @@ class _ChatSheetState extends State<_ChatSheet> {
               ),
               const SizedBox(width: 8),
               CircleAvatar(
-                backgroundColor: AppColors.admin,
+                backgroundColor: AppColors.roleAdmin,
                 child: IconButton(
                   icon: const Icon(Icons.send, color: Colors.white, size: 20),
                   onPressed: _enviando ? null : () => _enviar(_ctrl.text),
@@ -376,7 +376,7 @@ class _ChatSheetState extends State<_ChatSheet> {
         constraints: BoxConstraints(
             maxWidth: MediaQuery.of(context).size.width * 0.78),
         decoration: BoxDecoration(
-          color: m.user ? AppColors.admin : context.tokens.appBg,
+          color: m.user ? AppColors.roleAdmin : context.tokens.appBg,
           borderRadius: BorderRadius.circular(14),
         ),
         child: Text.rich(

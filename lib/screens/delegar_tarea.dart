@@ -12,7 +12,7 @@ import '../data/tareas_repository.dart';
 /// Solo ofrece los roles a los que el usuario actual PUEDE delegar.
 class DelegarTarea extends StatefulWidget {
   final Color color;
-  const DelegarTarea({super.key, this.color = AppColors.admin});
+  const DelegarTarea({super.key, this.color = AppColors.roleAdmin});
 
   @override
   State<DelegarTarea> createState() => _DelegarTareaState();
@@ -31,10 +31,15 @@ class _DelegarTareaState extends State<DelegarTarea> {
   bool _cargandoPersonas = false;
 
   List<Obra> _obras = [];
-  Obra? _obra; // obra a la que aporta avance (opcional)
-  int _avancePct = 10; // % que aporta al cumplirse
+  Obra? _obra; // obra a la que aporta avance (opcional, por defecto NINGUNA)
+  int _avancePct = 10; // % que aporta al cumplirse (solo si se elige obra)
 
   late final List<RolConfig> _destinos;
+
+  /// Secuencia de la última petición de personas lanzada. Evita que, al cambiar
+  /// de rol dos veces rápido, la respuesta lenta del rol anterior pise la lista
+  /// del rol actual (ganaba la última respuesta, no la última petición).
+  int _seqPersonas = 0;
 
   @override
   void initState() {
@@ -51,20 +56,21 @@ class _DelegarTareaState extends State<DelegarTarea> {
   Future<void> _cargarObras() async {
     final lista = await cargarObras();
     if (!mounted) return;
-    setState(() {
-      _obras = lista;
-      _obra = lista.isNotEmpty ? lista.first : null;
-    });
+    // NO se preselecciona ninguna obra: antes arrancaba en `lista.first` con un
+    // 10 % de avance por defecto, así que toda tarea delegada sumaba avance a
+    // una obra que el gerente nunca eligió y corrompía el % que ve el cliente.
+    setState(() => _obras = lista);
   }
 
   Future<void> _cargarPersonas() async {
     if (_rolDestino == null) return;
+    final seq = ++_seqPersonas;
     setState(() {
       _cargandoPersonas = true;
       _persona = null;
     });
     final lista = await personasPorRol(_rolDestino!);
-    if (!mounted) return;
+    if (!mounted || seq != _seqPersonas) return; // llegó tarde: se descarta
     setState(() {
       _personas = lista;
       _cargandoPersonas = false;
@@ -159,7 +165,7 @@ class _DelegarTareaState extends State<DelegarTarea> {
               const SizedBox(height: 14),
               _label('Delegar a *'),
               DropdownButtonFormField<String>(
-                value: _rolDestino,
+                initialValue: _rolDestino,
                 isExpanded: true,
                 decoration: _dec(''),
                 items: [
@@ -180,7 +186,7 @@ class _DelegarTareaState extends State<DelegarTarea> {
               const SizedBox(height: 14),
               _label('Prioridad'),
               DropdownButtonFormField<String>(
-                value: _prioridad,
+                initialValue: _prioridad,
                 isExpanded: true,
                 decoration: _dec(''),
                 items: [
@@ -192,7 +198,7 @@ class _DelegarTareaState extends State<DelegarTarea> {
               const SizedBox(height: 14),
               _label('Obra (avance al cumplirse)'),
               DropdownButtonFormField<int?>(
-                value: _obra?.id,
+                initialValue: _obra?.id,
                 isExpanded: true,
                 decoration: _dec(''),
                 items: [
@@ -281,7 +287,7 @@ class _DelegarTareaState extends State<DelegarTarea> {
       );
     }
     return DropdownButtonFormField<String?>(
-      value: _persona?.id,
+      initialValue: _persona?.id,
       isExpanded: true,
       decoration: _dec(''),
       items: [

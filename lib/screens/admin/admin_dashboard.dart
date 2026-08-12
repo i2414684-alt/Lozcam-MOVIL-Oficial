@@ -13,6 +13,7 @@ import '../../data/asignaciones_repository.dart';
 import '../../data/personas_repository.dart';
 import '../../data/tareas_repository.dart';
 import '../shell_router.dart';
+import '../tutorial_overlay.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -26,6 +27,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
   int _personal          = 0;
   int _presentesHoy      = 0;
   bool _cargando         = true;
+  /// Tareas cacheadas en el estado. Antes se llamaba a `todasLasTareas()`
+  /// dentro de `build()`, que lee y parsea JSON de la memoria interna en CADA
+  /// reconstrucción (cada animación, cada cambio de tema).
+  List<TareaAsignada> _tareas = const [];
 
   /// Hay obras pero no se leyó personal/asignaciones/asistencias: probable
   /// bloqueo por permisos (RLS) en la base de datos.
@@ -42,17 +47,24 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }
 
   Future<void> _cargar() async {
-    final obras    = await cargarObras();
-    final personal = await todoElPersonal();
-    final conteo   = await conteoAsignadosPorObra();
-    final asist    = await asistenciasHoyTodas();
+    // Las cuatro consultas son independientes: en paralelo en vez de en
+    // cadena, para que el panel abra en el tiempo de la más lenta y no en la
+    // suma de las cuatro.
+    final resultados = await Future.wait([
+      cargarObras(),
+      todoElPersonal(),
+      conteoAsignadosPorObra(),
+      asistenciasHoyTodas(),
+    ]);
+    final asist = resultados[3] as List<Map<String, dynamic>>;
     final presentes = asist.map((r) => r['perfil_id']).toSet().length;
     if (!mounted) return;
     setState(() {
-      _obras        = obras;
-      _conteo       = conteo;
-      _personal     = personal.length;
+      _obras        = resultados[0] as List<Obra>;
+      _personal     = (resultados[1] as List<Persona>).length;
+      _conteo       = resultados[2] as Map<int, int>;
       _presentesHoy = presentes;
+      _tareas       = todasLasTareas();
       _cargando     = false;
     });
   }
@@ -64,8 +76,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     final subtitulo = u == null
         ? 'Gerencia'
         : '${u.nombre} · ${u.rolNombre}';
-    final tareas  = todasLasTareas();
-    final abiertas = tareas.where((t) => t.estado != 'completada').length;
+    final abiertas = _tareas.where((t) => t.estado != 'completada').length;
 
     return Column(children: [
       PanelHeader(
@@ -73,6 +84,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           subtitle: subtitulo,
           color:    AppColors.roleAdmin,
           icon:     Icons.grid_view_outlined,
+          onGuia:   () => mostrarTutorial(context, AppArea.gerencia),
           onLogout: () => cerrarSesionYSalir(context)),
       Expanded(
         child: RefreshIndicator(
@@ -195,7 +207,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const CardTitle('Tareas recientes'),
-                      if (tareas.isEmpty)
+                      if (_tareas.isEmpty)
                         const Padding(
                           padding:
                               EdgeInsets.symmetric(vertical: AppSpacing.lg),
@@ -207,7 +219,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                           ),
                         )
                       else
-                        for (final tarea in tareas.take(4))
+                        for (final tarea in _tareas.take(4))
                           Padding(
                             padding: const EdgeInsets.symmetric(
                                 vertical: AppSpacing.sm - 2),

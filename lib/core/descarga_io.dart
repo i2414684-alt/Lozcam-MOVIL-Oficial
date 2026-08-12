@@ -34,6 +34,9 @@ Future<String> guardarODescargar(List<int> bytes, String nombre) async {
     }
     final destino = '${dir.path}$sep$nombre';
     await File(destino).writeAsBytes(bytes, flush: true);
-    return 'Reporte Excel guardado en:\n$destino';
+    // El mensaje sigue la extensión real: este mismo método exporta Excel y
+    // PDF, y antes decía siempre "Reporte Excel" incluso al guardar un PDF.
+    final tipo = nombre.toLowerCase().endsWith('.pdf') ? 'PDF' : 'Excel';
+    return 'Reporte $tipo guardado en:\n$destino';
   }
 }

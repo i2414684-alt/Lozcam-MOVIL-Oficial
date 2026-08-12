@@ -15,8 +15,18 @@ class AppErrorScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final puedeVolver = Navigator.maybeOf(context)?.canPop() ?? false;
+    // Esta pantalla se instala vía `ErrorWidget.builder` y puede dibujarse
+    // fuera de un `Theme`, así que no puede leer los tokens de la app. Se guía
+    // por el brillo de la plataforma para no dar un fogonazo blanco a quien
+    // usa el modo oscuro.
+    final oscuro =
+        MediaQuery.maybePlatformBrightnessOf(context) == Brightness.dark;
+    final fondo = oscuro ? const Color(0xFF0A0A0A) : const Color(0xFFF5F5F7);
+    final titulo = oscuro ? const Color(0xFFF2F2F7) : const Color(0xFF1A1A2E);
+    final cuerpo = oscuro ? const Color(0xFF9E9EA7) : const Color(0xFF636366);
+
     return Material(
-      color: const Color(0xFFF5F5F7),
+      color: fondo,
       child: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -26,17 +36,17 @@ class AppErrorScreen extends StatelessWidget {
               children: [
                 const Icon(Icons.error_outline, size: 48, color: Color(0xFFFF6D00)),
                 const SizedBox(height: 14),
-                const Text('Algo salió mal en esta pantalla',
+                Text('Algo salió mal en esta pantalla',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF1A1A2E))),
+                        color: titulo)),
                 const SizedBox(height: 6),
-                const Text(
+                Text(
                     'No se pudo mostrar este contenido, pero el resto de la app sigue funcionando.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 13, color: Color(0xFF636366))),
+                    style: TextStyle(fontSize: 13, color: cuerpo)),
                 if (puedeVolver) ...[
                   const SizedBox(height: 18),
                   ElevatedButton.icon(
@@ -56,8 +66,7 @@ class AppErrorScreen extends StatelessWidget {
                     childrenPadding: const EdgeInsets.all(12),
                     children: [
                       Text(details.exceptionAsString(),
-                          style: const TextStyle(
-                              fontSize: 11, color: Color(0xFF636366))),
+                          style: TextStyle(fontSize: 11, color: cuerpo)),
                     ],
                   ),
                 ],

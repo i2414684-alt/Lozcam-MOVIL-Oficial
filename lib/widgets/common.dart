@@ -32,6 +32,152 @@ LinearGradient _surface3d(Color bg, Brightness b) => LinearGradient(
     );
 
 // ══════════════════════════════════════════════════════════════════════════════
+//  Aviso de alcance del dato
+// ══════════════════════════════════════════════════════════════════════════════
+
+/// Distintivo «Solo en este dispositivo».
+///
+/// Hay dos módulos (Áreas GPS y Tareas delegadas) que hoy NO tienen tabla en el
+/// backend y viven en la memoria interna del teléfono: lo que el gerente crea
+/// ahí no lo ve nadie más. La interfaz los presentaba como si fueran funciones
+/// compartidas, y esa era la confusión más cara de la app.
+///
+/// Este chip lo dice de frente, en la propia pantalla, sin tocar la base de
+/// datos ni prometer nada que el backend no soporte todavía.
+class ChipSoloEsteDispositivo extends StatelessWidget {
+  final String detalle;
+  const ChipSoloEsteDispositivo(
+      {super.key,
+      this.detalle = 'Se guarda en este teléfono; el equipo no lo ve.'});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return Semantics(
+      label: 'Guardado solo en este dispositivo. $detalle',
+      child: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+        decoration: BoxDecoration(
+          color: t.warningSoft,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          border:
+              Border.all(color: t.warning.withValues(alpha: .3), width: 0.8),
+        ),
+        child: Row(children: [
+          Icon(Icons.phone_android, size: 16, color: t.warning),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Solo en este dispositivo',
+                      style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: t.warning)),
+                  Text(detalle,
+                      style:
+                          TextStyle(fontSize: 11, color: t.textSecondary)),
+                ]),
+          ),
+        ]),
+      ),
+    );
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  LazyIndexedStack
+// ══════════════════════════════════════════════════════════════════════════════
+
+/// `IndexedStack` que construye cada pestaña la PRIMERA vez que se visita, y a
+/// partir de ahí la conserva viva (mantiene scroll y estado, igual que el
+/// `IndexedStack` normal).
+///
+/// Con el `IndexedStack` clásico, entrar a un panel construía las 5-6 pantallas
+/// de golpe: seis `initState` lanzando sus consultas de red simultáneamente en
+/// el primer segundo de sesión, incluidas las de pestañas que el usuario quizá
+/// no abra nunca. En obra, con señal pobre, eso se nota.
+class LazyIndexedStack extends StatefulWidget {
+  final int index;
+  final List<Widget> children;
+  const LazyIndexedStack(
+      {super.key, required this.index, required this.children});
+
+  @override
+  State<LazyIndexedStack> createState() => _LazyIndexedStackState();
+}
+
+class _LazyIndexedStackState extends State<LazyIndexedStack> {
+  late final List<bool> _visitadas =
+      List<bool>.generate(widget.children.length, (i) => i == widget.index);
+
+  @override
+  void didUpdateWidget(covariant LazyIndexedStack old) {
+    super.didUpdateWidget(old);
+    if (widget.index >= 0 && widget.index < _visitadas.length) {
+      _visitadas[widget.index] = true;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IndexedStack(
+      index: widget.index,
+      children: [
+        for (var i = 0; i < widget.children.length; i++)
+          // Las no visitadas ocupan su hueco sin construir nada.
+          _visitadas[i] ? widget.children[i] : const SizedBox.shrink(),
+      ],
+    );
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  Confirmación de acciones destructivas
+// ══════════════════════════════════════════════════════════════════════════════
+
+/// Diálogo único de confirmación para acciones que no se pueden deshacer.
+///
+/// Existía en «Áreas» pero no en «Tareas», donde un solo toque borraba la tarea
+/// sin preguntar. Unificado aquí para que el criterio sea el mismo en toda la
+/// app: todo lo que borra, pregunta.
+Future<bool> confirmarAccion(
+  BuildContext context, {
+  required String titulo,
+  required String mensaje,
+  String confirmar = 'Eliminar',
+  String cancelar = 'Cancelar',
+}) async {
+  final t = context.tokens;
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      backgroundColor: t.surface,
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.lg)),
+      title: Text(titulo, style: ctx.text.h2),
+      content: Text(mensaje, style: ctx.text.body),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(cancelar,
+                style: TextStyle(color: t.textSecondary))),
+        TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(confirmar,
+                style: TextStyle(
+                    color: t.danger, fontWeight: FontWeight.w700))),
+      ],
+    ),
+  );
+  return ok == true;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 //  AppCard
 // ══════════════════════════════════════════════════════════════════════════════
 
@@ -338,6 +484,11 @@ class PanelHeader extends StatelessWidget {
   final IconData icon;
   final VoidCallback? onLogout;
 
+  /// Abre la guía del panel. Cuando se indica, aparece el botón «Guía» — es la
+  /// única entrada a la ayuda de la app, que antes no se podía abrir de ninguna
+  /// forma desde la interfaz.
+  final VoidCallback? onGuia;
+
   const PanelHeader({
     super.key,
     required this.title,
@@ -345,6 +496,7 @@ class PanelHeader extends StatelessWidget {
     required this.color,
     required this.icon,
     this.onLogout,
+    this.onGuia,
   });
 
   @override
@@ -421,6 +573,15 @@ class PanelHeader extends StatelessWidget {
                     ),
                   ]),
             ),
+            if (onGuia != null)
+              Tooltip(
+                message: 'Ver guía de uso',
+                child: IconButton(
+                  onPressed: onGuia,
+                  icon: const Icon(Icons.help_outline,
+                      color: Colors.white, size: 20),
+                ),
+              ),
             const ThemeToggleButton(color: Colors.white),
             if (onLogout != null)
               Tooltip(
@@ -522,6 +683,16 @@ class _PrimaryButtonState extends State<PrimaryButton>
   }
 
   @override
+  void didUpdateWidget(covariant PrimaryButton old) {
+    super.didUpdateWidget(old);
+    // Si el botón se deshabilita mientras estaba pulsado (p. ej. pasa a
+    // `loading` dentro del propio onPressed), suelta la escala para que no se
+    // quede "hundido" de forma permanente.
+    final ahoraActivo = widget.onPressed != null && !widget.loading;
+    if (!ahoraActivo && _ctrl.value != 0) _ctrl.reverse();
+  }
+
+  @override
   void dispose() {
     _ctrl.dispose();
     super.dispose();
@@ -532,19 +703,14 @@ class _PrimaryButtonState extends State<PrimaryButton>
     final bg = widget.color ?? context.tokens.brand;
     final enabled = widget.onPressed != null && !widget.loading;
 
-    return AnimatedBuilder(
-      animation: _scale,
-      builder: (_, child) =>
-          Transform.scale(scale: _scale.value, child: child),
-      child: GestureDetector(
-        onTapDown: enabled ? (_) => _ctrl.forward() : null,
-        onTapUp: enabled
-            ? (_) async {
-                await _ctrl.reverse();
-                widget.onPressed?.call();
-              }
-            : null,
-        onTapCancel: () => _ctrl.reverse(),
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      container: true,
+      child: AnimatedBuilder(
+        animation: _scale,
+        builder: (_, child) =>
+            Transform.scale(scale: _scale.value, child: child),
         child: AnimatedContainer(
           duration: AppMotion.fast,
           height: widget.height,
@@ -581,9 +747,18 @@ class _PrimaryButtonState extends State<PrimaryButton>
             Positioned.fill(
               child: Material(
                 color: Colors.transparent,
+                // Un ÚNICO detector de gestos. Antes había un GestureDetector
+                // envolviendo este InkWell: el hijo gana siempre la arena de
+                // gestos, así que el `onTap` vacío del InkWell se comía el
+                // toque y `onPressed` no llegaba a ejecutarse nunca (el botón
+                // "no hacía nada" al tocarlo). La animación de pulsado se
+                // dispara desde aquí mismo.
                 child: InkWell(
                   borderRadius: BorderRadius.circular(AppRadius.md),
-                  onTap: enabled ? () {} : null,
+                  onTap: enabled ? widget.onPressed : null,
+                  onTapDown: enabled ? (_) => _ctrl.forward() : null,
+                  onTapUp: enabled ? (_) => _ctrl.reverse() : null,
+                  onTapCancel: () => _ctrl.reverse(),
                   child: Center(
                     child: AnimatedSwitcher(
                       duration: AppMotion.base,
@@ -1019,40 +1194,9 @@ class ProgressBar extends StatelessWidget {
   }
 }
 
-/// Tarjeta de estadística legacy (número grande + etiqueta).
-class StatCard extends StatelessWidget {
-  final String value;
-  final String label;
-  final Color? color;
-  const StatCard(this.value, this.label, {super.key, this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    final t = context.tokens;
-    final brightness = Theme.of(context).brightness;
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        decoration: BoxDecoration(
-            gradient: _surface3d(t.surface, brightness),
-            borderRadius: BorderRadius.circular(AppRadius.md),
-            border: Border.all(color: t.border, width: 0.5),
-            boxShadow: AppShadows.sm(brightness)),
-        child: Column(children: [
-          Text(value,
-              style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  color: color ?? t.textPrimary)),
-          const SizedBox(height: 2),
-          Text(label,
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 10, color: t.textSecondary)),
-        ]),
-      ),
-    );
-  }
-}
+// `StatCard` (tarjeta KPI legacy y plana) se eliminó: convivía con `StatTile`
+// y la misma métrica se veía de dos formas distintas según la pantalla.
+// Toda la app usa ahora `StatTile`, envuelta en `Expanded` en la fila.
 
 /// Avatar circular con iniciales (legacy — usar RoleAvatar donde sea posible).
 class Avatar extends StatelessWidget {
@@ -1076,6 +1220,12 @@ class Avatar extends StatelessWidget {
 }
 
 /// Placeholder visual del mapa.
+///
+/// OBSOLETO: el panel del cliente ya usa [LiveMap] (OpenStreetMap real). Se
+/// conserva solo como marcador de carga para pantallas sin coordenadas; no
+/// vuelvas a usarlo donde haya lat/lng, y NUNCA rotulado con el nombre de un
+/// proveedor de mapas que la app no utiliza.
+@Deprecated('Usa LiveMap: dibuja la obra real sobre OpenStreetMap.')
 class MapPlaceholder extends StatelessWidget {
   final String label;
   final double height;
@@ -1132,7 +1282,9 @@ class MapPlaceholder extends StatelessWidget {
             decoration: BoxDecoration(
                 color: t.surface,
                 borderRadius: BorderRadius.circular(AppRadius.sm)),
-            child: Text('Google Maps',
+            // La app usa OpenStreetMap / Carto en todos sus mapas; el rótulo
+            // decía "Google Maps", que no interviene en ninguna parte.
+            child: Text('OpenStreetMap',
                 style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,

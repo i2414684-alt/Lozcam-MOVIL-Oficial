@@ -2,21 +2,46 @@ import 'package:flutter/material.dart';
 import '../../theme/colors.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
-import '../../core/local_store.dart';
+import '../../data/fuente_datos.dart';
+import '../../data/personas_repository.dart';
 import '../../data/roles.dart';
 
-/// Contacto del cliente: equipo de su proyecto (gerencia + jefatura de obra),
-/// tomado de la memoria interna. Datos de la oficina son estáticos.
-class ClienteContacto extends StatelessWidget {
+/// Contacto del cliente: equipo de su proyecto (gerencia + jefatura de obra).
+///
+/// Lee de `profiles` a través de [equipoDeContacto]. Antes leía la semilla de
+/// demo de la memoria interna, así que un cliente real veía como equipo de su
+/// obra a personas que no existen en la empresa.
+class ClienteContacto extends StatefulWidget {
   const ClienteContacto({super.key});
 
-  // Roles que son punto de contacto para el cliente.
-  static const _rolesContacto = {
-    'gerente_general',
-    'subgerente',
-    'administrador',
-    'ingeniero_residente',
-  };
+  @override
+  State<ClienteContacto> createState() => _ClienteContactoState();
+}
+
+class _ClienteContactoState extends State<ClienteContacto> {
+  List<Persona> _equipo = const [];
+  bool _cargando = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _cargar();
+  }
+
+  Future<void> _cargar() async {
+    final e = await equipoDeContacto();
+    if (!mounted) return;
+    setState(() {
+      // Orden por jerarquía: primero gerencia, luego jefatura de obra.
+      _equipo = e
+        ..sort((a, b) {
+          final na = rolPorClave(a.rol)?.nivel ?? 99;
+          final nb = rolPorClave(b.rol)?.nivel ?? 99;
+          return na != nb ? na.compareTo(nb) : a.nombre.compareTo(b.nombre);
+        });
+      _cargando = false;
+    });
+  }
 
   String _iniciales(String nombre) {
     final p = nombre.trim().split(RegExp(r'\s+'));
@@ -27,46 +52,53 @@ class ClienteContacto extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final equipo = LocalStore.usuarios()
-        .where((u) => _rolesContacto.contains(u['rol']))
-        .toList();
+    final equipo = _equipo;
 
     return Column(children: [
       const PanelHeader(
           title: 'Contacto',
           subtitle: 'Equipo de tu proyecto',
-          color: AppColors.cliente,
+          color: AppColors.roleCliente,
           icon: Icons.call_outlined),
       Expanded(
         child: ListView(padding: const EdgeInsets.all(12), children: [
           AppCard(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               const CardTitle('Equipo de tu obra'),
-              if (equipo.isEmpty)
+              if (_cargando)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20),
+                  child: Center(
+                      child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2))),
+                )
+              else if (equipo.isEmpty)
                 Text('Sin contactos disponibles.',
-                    style: TextStyle(fontSize: 12, color: context.tokens.textSecondary))
+                    style: TextStyle(
+                        fontSize: 12, color: context.tokens.textSecondary))
               else
-                for (final u in equipo)
+                for (final p in equipo)
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     child: Row(children: [
-                      Avatar(_iniciales('${u['nombre']}'),
-                          colorKey: rolPorClave('${u['rol']}')?.color ?? 'blue'),
+                      Avatar(_iniciales(p.nombre),
+                          colorKey: rolPorClave(p.rol)?.color ?? 'blue'),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('${u['nombre']}',
+                              Text(p.nombre,
                                   style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w500,
                                       color: context.tokens.textPrimary)),
-                              Text(
-                                  rolPorClave('${u['rol']}')?.nombre ??
-                                      '${u['rol']}',
+                              Text(rolPorClave(p.rol)?.nombre ?? p.rol,
                                   style: TextStyle(
-                                      fontSize: 11, color: context.tokens.textSecondary)),
+                                      fontSize: 11,
+                                      color: context.tokens.textSecondary)),
                             ]),
                       ),
                     ]),
@@ -78,12 +110,12 @@ class ClienteContacto extends StatelessWidget {
               CardTitle('Oficina Lozcam'),
               IconRow(
                   icon: Icons.call_outlined,
-                  iconColor: AppColors.cliente,
+                  iconColor: AppColors.roleCliente,
                   title: '(064) 123-456',
                   subtitle: 'Oficina principal — Huancayo'),
               IconRow(
                   icon: Icons.mail_outline,
-                  iconColor: AppColors.primary,
+                  iconColor: AppColors.brand,
                   title: 'info@lozcam.pe',
                   subtitle: 'Correo atención al cliente'),
             ]),

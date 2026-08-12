@@ -67,7 +67,7 @@ class _AdminShellState extends State<AdminShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(index: _i, children: _pages),
+      body: LazyIndexedStack(index: _i, children: _pages),
       floatingActionButton: Tooltip(
         message: 'Asistente IA',
         child: FloatingActionButton(

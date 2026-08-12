@@ -7,8 +7,8 @@ import '../../widgets/common.dart';
 import '../../models/models.dart';
 import '../../core/auth_service.dart';
 import '../../data/roles.dart';
-import '../../data/obras_repository.dart';
-import '../../data/asignaciones_repository.dart';
+import '../../data/avance_repository.dart';
+import '../../data/fuente_datos.dart';
 import '../../data/informes_repository.dart';
 
 /// Parte de avance del trabajador, en memoria interna (offline).
@@ -42,21 +42,29 @@ class _EmpleadoInformeState extends State<EmpleadoInforme> {
     _cargar();
   }
 
-  void _cargar() {
+  /// Misma fuente que «Inicio» y «Marcar» ([obrasDelUsuario]). Antes esta
+  /// pantalla leía las áreas de la memoria interna y decía «Sin obra asignada»
+  /// aunque el trabajador sí tuviera obra en la nube.
+  Future<void> _cargar() async {
     if (_esCampo) {
-      final id = AuthService.instance.session?.id ?? '';
-      final asignadas = areasDeTrabajador(id);
-      final todas = areasLocales();
-      final obras = asignadas.isEmpty
-          ? todas
-          : todas.where((o) => asignadas.contains(o.id)).toList();
+      final obras = await obrasDelUsuario();
+      if (!mounted) return;
       setState(() {
         _obras = obras;
-        _obra = obras.isNotEmpty ? obras.first : null;
+        // Conserva la obra elegida si sigue existiendo tras recargar.
+        _obra = obras.firstWhere((o) => o.id == _obra?.id,
+            orElse: () => obras.isNotEmpty ? obras.first : _sinObra);
+        if (obras.isEmpty) _obra = null;
       });
     }
+    if (!mounted) return;
     setState(() => _lista = misInformes());
   }
+
+  /// Centinela para `firstWhere` (nunca se muestra: si la lista está vacía se
+  /// asigna null justo después).
+  static const Obra _sinObra =
+      Obra(0, '', '', '', 'en_ejecucion', 0, '', '', 0, 0, 'blue');
 
   @override
   void dispose() {
@@ -110,20 +118,36 @@ class _EmpleadoInformeState extends State<EmpleadoInforme> {
       obraNombre = _ref.text.trim().isEmpty ? 'General' : _ref.text.trim();
       obraId = null;
     }
-    await guardarInforme(
-      obraId: obraId,
-      obraNombre: obraNombre,
-      texto: _texto.text.trim(),
-      pct: _pct.round(),
-      fotoPath: _fotoPath,
-    );
+    // Con obra real intentamos publicarlo en `avance_obra` (la tabla que lee el
+    // cliente). Antes el parte se guardaba SOLO en este dispositivo y el
+    // cliente no lo veía nunca.
+    bool enNube = false;
+    if (obraId != null && obraId > 0) {
+      enNube = await registrarAvanceObra(
+        obraId: obraId,
+        obraNombre: obraNombre,
+        porcentaje: _pct.round(),
+        descripcion: _texto.text.trim(),
+        fotoPath: _fotoPath,
+      );
+    } else {
+      await guardarInforme(
+        obraId: obraId,
+        obraNombre: obraNombre,
+        texto: _texto.text.trim(),
+        pct: _pct.round(),
+        fotoPath: _fotoPath,
+      );
+    }
     _texto.clear();
     _ref.clear();
-    setState(() => _fotoPath = null);
-    _cargar();
+    if (mounted) setState(() => _fotoPath = null);
+    await _cargar();
     if (mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Avance guardado.')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(enNube
+              ? 'Avance enviado. El cliente ya puede verlo.'
+              : 'Avance guardado en este dispositivo.')));
     }
   }
 
@@ -145,7 +169,7 @@ class _EmpleadoInformeState extends State<EmpleadoInforme> {
           subtitle: _esCad
               ? 'Avance de planos / diseño'
               : 'Registra el avance de la obra',
-          color: AppColors.empleado,
+          color: AppColors.roleEmpleado,
           icon: Icons.description_outlined),
       Expanded(
         child: ListView(padding: const EdgeInsets.all(12), children: [
@@ -159,7 +183,7 @@ class _EmpleadoInformeState extends State<EmpleadoInforme> {
                 min: 0,
                 max: 100,
                 divisions: 20,
-                activeColor: AppColors.empleado,
+                activeColor: AppColors.roleEmpleado,
                 label: '${_pct.round()}%',
                 onChanged: (v) => setState(() => _pct = v),
               ),
@@ -181,7 +205,7 @@ class _EmpleadoInformeState extends State<EmpleadoInforme> {
                           BorderSide(color: context.tokens.border, width: 0.5)),
                   focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: AppColors.empleado)),
+                      borderSide: const BorderSide(color: AppColors.roleEmpleado)),
                 ),
               ),
               const SizedBox(height: 8),
@@ -199,7 +223,7 @@ class _EmpleadoInformeState extends State<EmpleadoInforme> {
                           fontSize: 15,
                           fontWeight: FontWeight.w600)),
                   style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.empleado,
+                      backgroundColor: AppColors.roleEmpleado,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(vertical: 13),
                       shape: RoundedRectangleBorder(
@@ -264,7 +288,7 @@ class _EmpleadoInformeState extends State<EmpleadoInforme> {
               borderSide: BorderSide(color: context.tokens.border, width: 0.5)),
           focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: AppColors.empleado)),
+              borderSide: const BorderSide(color: AppColors.roleEmpleado)),
         ),
       ),
     ]);
@@ -283,8 +307,10 @@ class _EmpleadoInformeState extends State<EmpleadoInforme> {
               style: TextStyle(
                   color: context.tokens.textPrimary, fontWeight: FontWeight.w600)),
           style: OutlinedButton.styleFrom(
-              backgroundColor: AppColors.grayBg,
-              side: BorderSide.none,
+              // Token del tema, no un gris claro fijo: en modo oscuro este
+              // botón quedaba como un parche blanco.
+              backgroundColor: context.tokens.surfaceAlt,
+              side: BorderSide(color: context.tokens.border, width: 0.5),
               padding: const EdgeInsets.symmetric(vertical: 11),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8))),

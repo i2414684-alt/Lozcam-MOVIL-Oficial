@@ -132,6 +132,17 @@ class AuthService {
   /// Usuario actual (null = sin sesión). Lo leen las pantallas.
   SessionUser? session;
 
+  /// Motivo por el que el auto-login no prosperó (p. ej. «Tu usuario está
+  /// inactivo»). La pantalla de login lo muestra en vez de dejar al usuario
+  /// reintentando a ciegas. Se consume una sola vez.
+  String? _avisoArranque;
+
+  String? tomarAvisoArranque() {
+    final m = _avisoArranque;
+    _avisoArranque = null;
+    return m;
+  }
+
   /// ¿La app está trabajando contra la nube (Supabase listo)?
   bool get modoNube => supabaseListo;
 
@@ -145,11 +156,19 @@ class AuthService {
           final u = await _perfilDesdeSupabase(s.user.id, s.user.email ?? '');
           if (u != null) {
             session = u;
-            await LocalStore.guardarSesion(u.toJson());
+            // En modo nube la sesión persistida NO se vuelve a leer (manda la
+            // sesión de Supabase), así que no se guarda: eran datos de sesión
+            // escritos en disco que no se usaban jamás.
             return u;
           }
+        } on LoginError catch (e) {
+          // Usuario inactivo: se propaga el motivo real al login. Antes el
+          // `catch` se lo tragaba y el usuario volvía al login sin ninguna
+          // explicación, reintentando en bucle.
+          _avisoArranque = e.mensaje;
+          await cerrarSesion();
         } catch (_) {
-          // Usuario inactivo o error de perfil -> no hay auto-login.
+          // Error de red/perfil -> simplemente no hay auto-login.
         }
       }
       return null; // en nube sin sesión viva -> ir al login (no usar la local)
@@ -177,7 +196,9 @@ class AuthService {
         : await _ingresarLocal(mail, password);
 
     session = u;
-    await LocalStore.guardarSesion(u.toJson());
+    // Solo en modo local tiene sentido persistir la sesión: es la única vía por
+    // la que `restaurarSesion()` la vuelve a leer.
+    if (!supabaseListo) await LocalStore.guardarSesion(u.toJson());
     return u;
   }
 

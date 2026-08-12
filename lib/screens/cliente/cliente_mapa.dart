@@ -52,7 +52,7 @@ class _ClienteMapaState extends State<ClienteMapa> {
       PanelHeader(
           title: 'Ubicación de obra',
           subtitle: obra?.nombre ?? 'Cargando…',
-          color: AppColors.cliente,
+          color: AppColors.roleCliente,
           icon: Icons.location_on_outlined),
       Expanded(
         child: obra == null && _cargando
@@ -87,7 +87,7 @@ class _ClienteMapaState extends State<ClienteMapa> {
                             const CardTitle('Dirección'),
                             Row(children: [
                               const Icon(Icons.place,
-                                  color: AppColors.primary, size: 20),
+                                  color: AppColors.brand, size: 20),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(

@@ -176,7 +176,7 @@ class _AreaEditorState extends State<AreaEditor> {
     return Scaffold(
       backgroundColor: context.tokens.appBg,
       appBar: AppBar(
-        backgroundColor: AppColors.admin,
+        backgroundColor: AppColors.roleAdmin,
         foregroundColor: Colors.white,
         title: Text(widget.area == null ? 'Nueva área' : 'Editar área'),
         actions: [
@@ -287,7 +287,7 @@ class _AreaEditorState extends State<AreaEditor> {
           child: ElevatedButton(
             onPressed: _buscando ? null : _hacerBusqueda,
             style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.admin,
+                backgroundColor: AppColors.roleAdmin,
                 elevation: 0,
                 minimumSize: const Size(52, 44),
                 padding: EdgeInsets.zero,
@@ -325,7 +325,7 @@ class _AreaEditorState extends State<AreaEditor> {
           return ListTile(
             dense: true,
             leading: const Icon(Icons.place_outlined,
-                size: 20, color: AppColors.admin),
+                size: 20, color: AppColors.roleAdmin),
             title: Text(r.nombre,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
@@ -367,8 +367,8 @@ class _AreaEditorState extends State<AreaEditor> {
                 point: _punto!,
                 radius: _radio.toDouble(),
                 useRadiusInMeter: true,
-                color: AppColors.admin.withValues(alpha:0.12),
-                borderColor: AppColors.admin.withValues(alpha:0.6),
+                color: AppColors.roleAdmin.withValues(alpha:0.12),
+                borderColor: AppColors.roleAdmin.withValues(alpha:0.6),
                 borderStrokeWidth: 1.5,
               ),
             ]),
@@ -379,7 +379,7 @@ class _AreaEditorState extends State<AreaEditor> {
                 width: 42,
                 height: 42,
                 child: const Icon(Icons.location_on,
-                    color: AppColors.admin, size: 38),
+                    color: AppColors.roleAdmin, size: 38),
               ),
             ]),
         ],
@@ -392,7 +392,9 @@ class _AreaEditorState extends State<AreaEditor> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-                color: Colors.white,
+                // Token del tema: en modo oscuro este cartel sobre el mapa
+                // quedaba como un parche blanco.
+                color: context.tokens.surface,
                 borderRadius: BorderRadius.circular(10),
                 border:
                     Border.all(color: context.tokens.border, width: 0.5)),
@@ -408,13 +410,14 @@ class _AreaEditorState extends State<AreaEditor> {
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        // Token del tema, no blanco fijo (ver comentario del cartel de ayuda).
+        color: context.tokens.surface,
         border: Border(top: BorderSide(color: context.tokens.border, width: 0.5)),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         if (_direccion != null) ...[
           Row(children: [
-            const Icon(Icons.place, size: 14, color: AppColors.admin),
+            const Icon(Icons.place, size: 14, color: AppColors.roleAdmin),
             const SizedBox(width: 4),
             Expanded(
               child: Text(_direccion!,
@@ -455,7 +458,7 @@ class _AreaEditorState extends State<AreaEditor> {
           min: 50,
           max: 1000,
           divisions: 19,
-          activeColor: AppColors.admin,
+          activeColor: AppColors.roleAdmin,
           label: '$_radio m',
           onChanged: (v) => setState(() => _radio = v.round()),
         ),

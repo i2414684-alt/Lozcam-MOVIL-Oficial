@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Naranja corporativo Lozcam (== AppColors.brand en lib/theme/colors.dart).
+         Lo usa Android para teñir el icono de las notificaciones push. -->
+    <color name="lozcam_naranja">#FF6D00</color>
+</resources>

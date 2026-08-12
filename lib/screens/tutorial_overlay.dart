@@ -38,11 +38,11 @@ const _slides = <AppArea, List<_Slide>>{
 Color _colorDe(AppArea a) {
   switch (a) {
     case AppArea.gerencia:
-      return AppColors.admin;
+      return AppColors.roleAdmin;
     case AppArea.cliente:
-      return AppColors.cliente;
+      return AppColors.roleCliente;
     case AppArea.operativo:
-      return AppColors.empleado;
+      return AppColors.roleEmpleado;
   }
 }
 
@@ -50,6 +50,11 @@ Color _colorDe(AppArea a) {
 /// entrar al panel y en web (Chrome usa un puerto distinto en cada `flutter
 /// run`, lo que reinicia el localStorage) reaparecía como una pantalla oscura.
 /// Cambia a `true` para reactivar el tutorial automático de bienvenida.
+///
+/// El tutorial NO es código muerto: se abre a demanda desde el botón «Guía»
+/// de la cabecera de cada panel ([mostrarTutorial]). Antes solo existía la vía
+/// automática y, con este interruptor en `false`, las ~200 líneas de esta
+/// pantalla eran inalcanzables desde la app.
 bool tutorialAutomaticoHabilitado = false;
 
 /// Muestra el tutorial SOLO la primera vez para ese panel/rol.
@@ -60,7 +65,13 @@ Future<void> mostrarTutorialSiPrimeraVez(
   if (LocalStore.tutorialVisto(clave)) return;
   await LocalStore.marcarTutorialVisto(clave); // garantiza "una sola vez"
   if (!context.mounted) return;
-  await showDialog<void>(
+  await mostrarTutorial(context, area);
+}
+
+/// Abre la guía del panel a petición del usuario (botón «Guía» de la cabecera).
+/// Se puede ver tantas veces como quiera; no depende de si ya la vio.
+Future<void> mostrarTutorial(BuildContext context, AppArea area) {
+  return showDialog<void>(
     context: context,
     barrierDismissible: true, // tocar el fondo cierra el tutorial (no atrapa)
     builder: (_) => _TutorialDialog(area: area),

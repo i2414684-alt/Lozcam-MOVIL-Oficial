@@ -38,6 +38,30 @@ List<Map<String, dynamic>> trabajadoresDeArea(int areaId) => LocalStore
     .where((a) => (a['area_id'] as num).toInt() == areaId)
     .toList();
 
+/// Perfil-ids asignados a un área. Producción: tabla `asignaciones`; sin nube o
+/// si el RLS no deja leer: memoria interna.
+///
+/// La versión síncrona [trabajadoresDeArea] solo veía la memoria interna, así
+/// que la pantalla «Asignar trabajadores» abría con todas las casillas
+/// desmarcadas aunque el trabajador SÍ estuviera asignado en la base de datos.
+Future<Set<String>> perfilesDeArea(int areaId) async {
+  if (supabaseListo) {
+    try {
+      final rows = await supabase
+          .from('asignaciones')
+          .select('perfil_id')
+          .eq('obra_id', areaId)
+          .eq('activo', true);
+      return (rows as List).map((r) => '${r['perfil_id']}').toSet();
+    } catch (_) {
+      // cae a memoria interna
+    }
+  }
+  return trabajadoresDeArea(areaId)
+      .map((a) => '${a['perfil_id']}')
+      .toSet();
+}
+
 int contarTrabajadoresArea(int areaId) => trabajadoresDeArea(areaId).length;
 
 /// Detalle de asignaciones activas: lista de { obra_id, perfil_id }.
@@ -97,11 +121,45 @@ Future<Map<int, int>> conteoAsignadosPorObra() async {
   return map;
 }
 
-Future<void> asignar({
+/// Asigna un trabajador a una obra/área.
+///
+/// ESCRIBE DONDE SE LEE: primero en la tabla real `asignaciones` (la misma que
+/// consultan [obrasAsignadasA] y [asignacionesDetalle]) y además deja copia en
+/// la memoria interna como caché. Antes escribía SOLO en local mientras la
+/// lectura iba a la nube, así que una asignación hecha desde la app no se veía
+/// nunca — ni en otro dispositivo ni en el mismo.
+///
+/// Devuelve `true` si quedó registrada en la nube (compartida con el equipo).
+Future<bool> asignar({
   required Persona persona,
   required int areaId,
   required String areaNombre,
 }) async {
+  var enNube = false;
+  if (supabaseListo) {
+    try {
+      // Primero se intenta REACTIVAR una fila existente (el trabajador ya
+      // estuvo asignado y se le quitó). Solo si no había ninguna se inserta.
+      // Se hace así, y no con `upsert`, para no depender de que exista una
+      // restricción única (obra_id, perfil_id) en la tabla.
+      final actualizadas = await supabase
+          .from('asignaciones')
+          .update({'activo': true})
+          .eq('obra_id', areaId)
+          .eq('perfil_id', persona.id)
+          .select('perfil_id');
+      if ((actualizadas as List).isEmpty) {
+        await supabase.from('asignaciones').insert({
+          'obra_id': areaId,
+          'perfil_id': persona.id,
+          'activo': true,
+        });
+      }
+      enNube = true;
+    } catch (_) {
+      // Sin permiso de escritura o sin señal: queda el respaldo local.
+    }
+  }
   await LocalStore.guardarAsignacion({
     'perfil_id': persona.id,
     'perfil_nombre': persona.nombre,
@@ -109,7 +167,25 @@ Future<void> asignar({
     'area_id': areaId,
     'area_nombre': areaNombre,
   });
+  return enNube;
 }
 
-Future<void> quitar(String perfilId, int areaId) =>
-    LocalStore.quitarAsignacion(perfilId, areaId);
+/// Quita la asignación. En la nube se marca `activo = false` (no se borra la
+/// fila, para conservar el histórico); en local se elimina la entrada.
+Future<bool> quitar(String perfilId, int areaId) async {
+  var enNube = false;
+  if (supabaseListo) {
+    try {
+      await supabase
+          .from('asignaciones')
+          .update({'activo': false})
+          .eq('obra_id', areaId)
+          .eq('perfil_id', perfilId);
+      enNube = true;
+    } catch (_) {
+      // queda el respaldo local
+    }
+  }
+  await LocalStore.quitarAsignacion(perfilId, areaId);
+  return enNube;
+}

@@ -56,7 +56,7 @@ class _AdminObrasState extends State<AdminObras> {
       const PanelHeader(
           title: 'Obras',
           subtitle: 'Avance por obra',
-          color: AppColors.admin,
+          color: AppColors.roleAdmin,
           icon: Icons.business_outlined),
       Expanded(
         child: RefreshIndicator(

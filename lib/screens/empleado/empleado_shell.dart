@@ -60,7 +60,7 @@ class _EmpleadoShellState extends State<EmpleadoShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(index: _i, children: _pages),
+      body: LazyIndexedStack(index: _i, children: _pages),
       bottomNavigationBar: AppBottomNav(
         currentIndex: _i,
         onTap: (v) => setState(() => _i = v),

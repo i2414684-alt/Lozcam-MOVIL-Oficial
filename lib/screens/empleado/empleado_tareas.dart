@@ -55,7 +55,7 @@ class _EmpleadoTareasState extends State<EmpleadoTareas> {
 
   Future<void> _delegar() async {
     final ok = await Navigator.of(context).push<bool>(MaterialPageRoute(
-        builder: (_) => const DelegarTarea(color: AppColors.empleado)));
+        builder: (_) => const DelegarTarea(color: AppColors.roleEmpleado)));
     if (ok == true) _cargar();
   }
 
@@ -85,7 +85,7 @@ class _EmpleadoTareasState extends State<EmpleadoTareas> {
       const PanelHeader(
           title: 'Mis tareas',
           subtitle: 'Asignadas a tu rol',
-          color: AppColors.empleado,
+          color: AppColors.roleEmpleado,
           icon: Icons.checklist),
       Expanded(
         child: ListView(padding: const EdgeInsets.all(12), children: [
@@ -105,7 +105,7 @@ class _EmpleadoTareasState extends State<EmpleadoTareas> {
                     style: TextStyle(
                         color: Colors.white, fontWeight: FontWeight.w600)),
                 style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.empleado,
+                    backgroundColor: AppColors.roleEmpleado,
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(vertical: 13),
                     shape: RoundedRectangleBorder(
@@ -187,8 +187,8 @@ class _EmpleadoTareasState extends State<EmpleadoTareas> {
           child: OutlinedButton(
             onPressed: () => _cambiarEstado(t, 'en_progreso'),
             style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.empleado,
-                side: const BorderSide(color: AppColors.empleado),
+                foregroundColor: AppColors.roleEmpleado,
+                side: const BorderSide(color: AppColors.roleEmpleado),
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10))),

@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'enums.dart';
@@ -16,12 +17,40 @@ import 'tareas_repository.dart' show estadoTareaLabel, prioridadLabel;
 
 PdfColor _c(int argb) => PdfColor.fromInt(argb);
 
+/// Tema con fuente Unicode. `dart_pdf` usa por defecto Helvetica, que es una
+/// fuente "core" Latin-1 y NO sabe dibujar tildes ni ñ: el reporte salía con
+/// los acentos rotos. Registramos Roboto (empaquetada en assets/, Apache-2.0)
+/// para que el PDF salga correcto también sin conexión.
+/// Se cachea porque el TTF se parsea una sola vez por sesión.
+pw.ThemeData? _temaCache;
+
+Future<pw.ThemeData> _temaUnicode() async {
+  if (_temaCache != null) return _temaCache!;
+  try {
+    final regular = pw.Font.ttf(
+        await rootBundle.load('assets/fonts/Roboto-Regular.ttf'));
+    final bold =
+        pw.Font.ttf(await rootBundle.load('assets/fonts/Roboto-Bold.ttf'));
+    _temaCache = pw.ThemeData.withFont(
+      base: regular,
+      bold: bold,
+      italic: regular,
+      boldItalic: bold,
+    );
+  } catch (_) {
+    // Si el asset no está disponible (p. ej. en un test sin binding), seguimos
+    // con el tema por defecto en vez de romper la generación del reporte.
+    _temaCache = pw.ThemeData.base();
+  }
+  return _temaCache!;
+}
+
 Future<Uint8List> generarReportePdf(
     {PlantillaReporte plantilla = PlantillaReporte.naranja}) async {
   final d = await cargarDatosReporte();
   final pal = paletaDe(plantilla);
 
-  final doc = pw.Document();
+  final doc = pw.Document(theme: await _temaUnicode());
 
   pw.Widget seccion(String titulo) => pw.Padding(
         padding: const pw.EdgeInsets.only(top: 14, bottom: 6),

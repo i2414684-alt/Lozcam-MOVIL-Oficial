@@ -28,41 +28,51 @@ class _AsignarTrabajadoresState extends State<AsignarTrabajadores> {
   }
 
   Future<void> _cargar() async {
-    final lista = await personasDeRoles(rolesDeCampo);
+    // Las asignaciones ya marcadas se leen de la tabla real, no solo de la
+    // memoria de este teléfono.
+    final resultados = await Future.wait([
+      personasDeRoles(rolesDeCampo),
+      perfilesDeArea(widget.area.id),
+    ]);
     if (!mounted) return;
     setState(() {
-      _personas = lista;
-      _asignados = trabajadoresDeArea(widget.area.id)
-          .map((a) => a['perfil_id'] as String)
-          .toSet();
+      _personas = resultados[0] as List<Persona>;
+      _asignados = resultados[1] as Set<String>;
       _cargando = false;
     });
   }
 
   Future<void> _toggle(Persona p, bool valor) async {
+    // Actualización optimista: la casilla responde al instante y se revierte
+    // si la operación falla.
+    setState(() => valor ? _asignados.add(p.id) : _asignados.remove(p.id));
     try {
-      if (valor) {
-        await asignar(
-            persona: p, areaId: widget.area.id, areaNombre: widget.area.nombre);
-        if (mounted) setState(() => _asignados.add(p.id));
-      } else {
-        await quitar(p.id, widget.area.id);
-        if (mounted) setState(() => _asignados.remove(p.id));
+      final enNube = valor
+          ? await asignar(
+              persona: p,
+              areaId: widget.area.id,
+              areaNombre: widget.area.nombre)
+          : await quitar(p.id, widget.area.id);
+      if (!enNube && mounted) {
+        _aviso('Guardado solo en este dispositivo: el equipo no lo verá.');
       }
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('No se pudo actualizar la asignación. Intenta de nuevo.')));
+        setState(() => valor ? _asignados.remove(p.id) : _asignados.add(p.id));
+        _aviso('No se pudo actualizar la asignación. Intenta de nuevo.');
       }
     }
   }
+
+  void _aviso(String m) =>
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: context.tokens.appBg,
       appBar: AppBar(
-        backgroundColor: AppColors.admin,
+        backgroundColor: AppColors.roleAdmin,
         foregroundColor: Colors.white,
         title: const Text('Asignar trabajadores'),
       ),
@@ -103,7 +113,7 @@ class _AsignarTrabajadoresState extends State<AsignarTrabajadores> {
                           final p = _personas[i];
                           return CheckboxListTile(
                             value: _asignados.contains(p.id),
-                            activeColor: AppColors.admin,
+                            activeColor: AppColors.roleAdmin,
                             title: Text(p.nombre,
                                 style: const TextStyle(fontSize: 14)),
                             subtitle: Text(

@@ -34,7 +34,8 @@ class MapaCalorObraScreen extends StatefulWidget {
   State<MapaCalorObraScreen> createState() => _MapaCalorObraScreenState();
 }
 
-class _MapaCalorObraScreenState extends State<MapaCalorObraScreen> {
+class _MapaCalorObraScreenState extends State<MapaCalorObraScreen>
+    with WidgetsBindingObserver {
   DisenoObra? _diseno;
   ActividadArea? _actividad;
   List<double> _calorDias = const [];
@@ -49,13 +50,33 @@ class _MapaCalorObraScreenState extends State<MapaCalorObraScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _cargar();
-    // "Tiempo real": el gráfico se refresca solo cada 60 s.
+    _arrancarTimer();
+  }
+
+  /// "Tiempo real": el gráfico se refresca solo cada 60 s.
+  void _arrancarTimer() {
+    _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 60), (_) => _cargar());
+  }
+
+  /// Se detiene el refresco con la app en segundo plano y se reanuda al volver:
+  /// antes seguía consultando la base de datos cada minuto sin nadie mirando.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _cargar();
+      _arrancarTimer();
+    } else {
+      _timer?.cancel();
+      _timer = null;
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _timer?.cancel();
     super.dispose();
   }
@@ -251,14 +272,30 @@ class _MapaCalorObraScreenState extends State<MapaCalorObraScreen> {
   /// Resumen general en cifras (sin descripciones de texto).
   Widget _resumen(AppTokens t) {
     final a = _actividad;
+    // StatTile (única tarjeta KPI de la app). Antes esta pantalla usaba la
+    // legacy `StatCard`, así que la misma métrica se veía de dos formas
+    // distintas según la pestaña.
     return Row(children: [
-      StatCard('$_pctGlobal%', 'Avance global', color: AppColors.brand),
-      const SizedBox(width: 8),
-      StatCard('${a?.presentes.length ?? 0}', 'Presentes hoy',
-          color: t.success),
-      const SizedBox(width: 8),
-      StatCard('${a?.tareasAbiertas ?? 0}', 'Tareas abiertas',
-          color: t.warning),
+      Expanded(
+        child: StatTile(
+            label: 'Avance global',
+            value: '$_pctGlobal%',
+            accentColor: AppColors.brand),
+      ),
+      const SizedBox(width: AppSpacing.sm),
+      Expanded(
+        child: StatTile(
+            label: 'Presentes hoy',
+            value: '${a?.presentes.length ?? 0}',
+            accentColor: t.success),
+      ),
+      const SizedBox(width: AppSpacing.sm),
+      Expanded(
+        child: StatTile(
+            label: 'Tareas abiertas',
+            value: '${a?.tareasAbiertas ?? 0}',
+            accentColor: t.warning),
+      ),
     ]);
   }
 

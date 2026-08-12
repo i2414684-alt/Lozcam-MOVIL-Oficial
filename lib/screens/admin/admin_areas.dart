@@ -42,23 +42,12 @@ class _AdminAreasState extends State<AdminAreas> {
   }
 
   Future<void> _eliminar(Obra a) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Eliminar área'),
-        content: Text('¿Eliminar "${a.nombre}"?'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancelar')),
-          TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Eliminar',
-                  style: TextStyle(color: AppColors.danger))),
-        ],
-      ),
+    final ok = await confirmarAccion(
+      context,
+      titulo: 'Eliminar área',
+      mensaje: '¿Eliminar "${a.nombre}"? Esta acción no se puede deshacer.',
     );
-    if (ok == true) {
+    if (ok) {
       await eliminarArea(a.id);
       _cargar();
     }
@@ -70,10 +59,16 @@ class _AdminAreasState extends State<AdminAreas> {
       const PanelHeader(
           title: 'Áreas de trabajo',
           subtitle: 'Define ubicaciones por GPS',
-          color: AppColors.admin,
+          color: AppColors.roleAdmin,
           icon: Icons.add_location_alt_outlined),
       Expanded(
         child: ListView(padding: const EdgeInsets.all(12), children: [
+          // No existe tabla `areas` en el backend: estas áreas viven en el
+          // teléfono del gerente. Se dice claramente en vez de dejar creer que
+          // el resto del equipo las ve.
+          const ChipSoloEsteDispositivo(
+              detalle:
+                  'Las áreas GPS se guardan en este teléfono. Para marcar asistencia, el trabajador usa las obras de la base de datos.'),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
@@ -85,7 +80,7 @@ class _AdminAreasState extends State<AdminAreas> {
                       fontSize: 15,
                       fontWeight: FontWeight.w600)),
               style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.admin,
+                  backgroundColor: AppColors.roleAdmin,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
@@ -117,8 +112,10 @@ class _AdminAreasState extends State<AdminAreas> {
           height: 38,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-              color: AppColors.orangeBg, borderRadius: BorderRadius.circular(10)),
-          child: const Icon(Icons.location_on, color: AppColors.admin, size: 20),
+              // Token del tema en vez de la paleta clara fija.
+              color: context.tokens.brandSoft,
+              borderRadius: BorderRadius.circular(10)),
+          child: const Icon(Icons.location_on, color: AppColors.roleAdmin, size: 20),
         ),
         const SizedBox(width: 10),
         Expanded(
@@ -149,7 +146,7 @@ class _AdminAreasState extends State<AdminAreas> {
         ),
         IconButton(
           icon: const Icon(Icons.group_add_outlined,
-              size: 20, color: AppColors.admin),
+              size: 20, color: AppColors.roleAdmin),
           tooltip: 'Asignar trabajadores',
           onPressed: () => _asignar(a),
         ),

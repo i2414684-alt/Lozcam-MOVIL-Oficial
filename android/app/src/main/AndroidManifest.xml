@@ -8,6 +8,12 @@
     <!-- Cámara para la foto de evidencia (galería usa el Photo Picker, sin permiso) -->
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
+    <!-- Notificaciones push (FCM).
+         POST_NOTIFICATIONS es obligatorio desde Android 13 (API 33) y se pide
+         en tiempo de ejecución, igual que la cámara: sin él, el sistema
+         descarta las notificaciones EN SILENCIO, sin ningún error visible.
+         Lo solicita PushService.iniciar(). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <application
         android:label="Lozcam"
         android:name="${applicationName}"
@@ -34,6 +40,30 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- ══ Firebase Cloud Messaging ══════════════════════════════════════
+             Canal de notificaciones POR DEFECTO.
+
+             Desde Android 8 (API 26) toda notificación debe pertenecer a un
+             canal. Cuando llega un mensaje con bloque `notification` y la app
+             NO está en primer plano, es el SISTEMA quien la dibuja, sin pasar
+             por código Dart: si no encuentra un canal válido la descarta sin
+             avisar. Este meta-data le dice cuál usar.
+
+             El id debe ser EXACTAMENTE el mismo que se use al crear el canal
+             desde Dart (ver nota en lib/core/push_service.dart). -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="lozcam_avisos" />
+        <!-- Icono e color de la notificación. El icono DEBE ser monocromo con
+             transparencia: Android lo pinta como silueta, y un PNG a todo color
+             se ve como un cuadrado blanco sólido en la barra de estado. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@mipmap/ic_launcher" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/lozcam_naranja" />
+
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

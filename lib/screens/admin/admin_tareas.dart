@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../theme/colors.dart';
 import '../../theme/app_theme.dart';
+import '../../theme/tokens.dart';
 import '../../widgets/common.dart';
 import '../../data/tareas_repository.dart';
 import '../delegar_tarea.dart';
@@ -26,11 +27,19 @@ class _AdminTareasState extends State<AdminTareas> {
 
   Future<void> _delegar() async {
     final ok = await Navigator.of(context).push<bool>(MaterialPageRoute(
-        builder: (_) => const DelegarTarea(color: AppColors.admin)));
+        builder: (_) => const DelegarTarea(color: AppColors.roleAdmin)));
     if (ok == true) _cargar();
   }
 
+  /// Borrar es irreversible: se confirma, igual que en «Áreas». Antes bastaba
+  /// un solo toque para perder la tarea.
   Future<void> _eliminar(TareaAsignada t) async {
+    final ok = await confirmarAccion(
+      context,
+      titulo: 'Eliminar tarea',
+      mensaje: '¿Eliminar "${t.titulo}"? Esta acción no se puede deshacer.',
+    );
+    if (!ok) return;
     await eliminarTarea(t.id);
     _cargar();
   }
@@ -43,13 +52,19 @@ class _AdminTareasState extends State<AdminTareas> {
       const PanelHeader(
           title: 'Delegación de tareas',
           subtitle: 'Monitoreo de toda la empresa',
-          color: AppColors.admin,
+          color: AppColors.roleAdmin,
           icon: Icons.checklist),
       Expanded(
         child: ListView(padding: const EdgeInsets.all(12), children: [
           // Actividad en vivo por área (mapa de calor): presentes, tareas, avance
           const ActividadAreasStrip(),
           const SizedBox(height: 8),
+          // No existe tabla `tareas` en el backend: la delegación es local a
+          // este dispositivo. Antes la app lo presentaba como si la tarea le
+          // llegara al trabajador, y nunca le llegaba.
+          const ChipSoloEsteDispositivo(
+              detalle:
+                  'Las tareas delegadas se guardan en este teléfono. El avance que aportan a la obra sí se publica en la base de datos.'),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
@@ -59,7 +74,7 @@ class _AdminTareasState extends State<AdminTareas> {
                   style: TextStyle(
                       color: Colors.white, fontWeight: FontWeight.w600)),
               style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.admin,
+                  backgroundColor: AppColors.roleAdmin,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(vertical: 13),
                   shape: RoundedRectangleBorder(
@@ -68,11 +83,26 @@ class _AdminTareasState extends State<AdminTareas> {
           ),
           const SizedBox(height: 8),
           Row(children: [
-            StatCard('${_tareas.length}', 'Total', color: AppColors.admin),
-            const SizedBox(width: 8),
-            StatCard('$pend', 'Abiertas', color: AppColors.warning),
-            const SizedBox(width: 8),
-            StatCard('$comp', 'Completadas', color: AppColors.success),
+            Expanded(
+              child: StatTile(
+                  label: 'Total',
+                  value: '${_tareas.length}',
+                  accentColor: AppColors.roleAdmin),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: StatTile(
+                  label: 'Abiertas',
+                  value: '$pend',
+                  accentColor: AppColors.warning),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: StatTile(
+                  label: 'Completadas',
+                  value: '$comp',
+                  accentColor: AppColors.success),
+            ),
           ]),
           const SizedBox(height: 10),
           if (_tareas.isEmpty)

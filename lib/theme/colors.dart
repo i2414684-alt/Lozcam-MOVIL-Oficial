@@ -5,13 +5,10 @@ class AppColors {
   // ── Marca única ────────────────────────────────────────────────────────────
   static const brand = Color(0xFFFF6D00); // naranja Lozcam 2026 — ÚNICA fuente de verdad
 
-  /// Alias legacy — usar [brand].
-  @Deprecated('Usa AppColors.brand')
-  static const primary = brand;
-
-  /// Alias legacy — usar [brand].
-  @Deprecated('Usa AppColors.brand')
-  static const admin = brand;
+  // Los alias legacy `primary` y `admin` se eliminaron: convivían con `brand` y
+  // `roleAdmin` y las pantallas usaban ambos vocabularios mezclados. Son el
+  // mismo color, así que el error no se veía — pero el día que se quisiera
+  // diferenciar tonos por rol, media app no habría respondido.
 
   // ── Tints de marca (HSL ~15° / sat ~75%) ──────────────────────────────────
   static const brand50  = Color(0xFFFFF3E9);
@@ -29,14 +26,7 @@ class AppColors {
   static const roleAdmin    = brand;
   static const roleEmpleado = Color(0xFF1A56B0); // azul
   static const roleCliente  = Color(0xFF1D6E48); // verde
-
-  /// Alias legacy — usar [roleEmpleado].
-  @Deprecated('Usa AppColors.roleEmpleado')
-  static const empleado = roleEmpleado;
-
-  /// Alias legacy — usar [roleCliente].
-  @Deprecated('Usa AppColors.roleCliente')
-  static const cliente = roleCliente;
+  // Alias legacy `empleado` / `cliente` eliminados (ver nota en `brand`).
 
   // ── Semánticos globales ────────────────────────────────────────────────────
   static const success = Color(0xFF34C759);

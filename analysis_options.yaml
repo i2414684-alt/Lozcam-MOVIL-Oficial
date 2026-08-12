@@ -4,3 +4,12 @@ linter:
   rules:
     prefer_const_constructors: true
     avoid_print: false
+    # Sin esta regla el analizador NO avisaba cuando una pantalla usaba un
+    # alias de color marcado como @Deprecated dentro del propio paquete, y por
+    # eso convivieron dos vocabularios de color (admin/brand, empleado/roleEmpleado)
+    # sin que saltara ningún aviso.
+    deprecated_member_use_from_same_package: true
+    # Errores de red/BD que se tragan en silencio dejan la pantalla diciendo
+    # "no hay datos" cuando en realidad falló la conexión.
+    avoid_empty_else: true
+    unnecessary_await_in_return: true

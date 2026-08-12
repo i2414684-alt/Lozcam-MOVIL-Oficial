@@ -4,6 +4,7 @@ import '../../theme/app_theme.dart';
 import '../../theme/tokens.dart';
 import '../../widgets/common.dart';
 import '../../widgets/charts.dart';
+import '../../widgets/live_map.dart';
 import '../../models/models.dart';
 import '../../core/auth_service.dart';
 import '../../data/enums.dart';
@@ -12,6 +13,7 @@ import '../../data/avance_repository.dart';
 import '../mapa_calor.dart';
 import '../mapa_calor_obra.dart';
 import '../shell_router.dart';
+import '../tutorial_overlay.dart';
 
 class ClienteDashboard extends StatefulWidget {
   const ClienteDashboard({super.key});
@@ -53,6 +55,7 @@ class _ClienteDashboardState extends State<ClienteDashboard> {
           subtitle: 'Mi proyecto',
           color:    AppColors.roleCliente,
           icon:     Icons.business_outlined,
+          onGuia:   () => mostrarTutorial(context, AppArea.cliente),
           onLogout: () => cerrarSesionYSalir(context)),
       Expanded(
         child: RefreshIndicator(
@@ -148,11 +151,19 @@ class _ClienteDashboardState extends State<ClienteDashboard> {
                 ActividadAreasStrip(soloObras: [obra.id]),
                 const SizedBox(height: AppSpacing.sm),
 
-                // Mapa placeholder
+                // Mapa REAL de la obra (OpenStreetMap), no un dibujo.
+                // Antes aquí había un placeholder decorativo rotulado "Google
+                // Maps" — el cliente veía un mapa de verdad en la pestaña
+                // *Mapa* y un dibujo falso en *Inicio*, con el nombre de un
+                // proveedor que la app no usa.
                 ClipRRect(
                   borderRadius: BorderRadius.circular(AppRadius.lg),
-                  child: MapPlaceholder(
-                    label: obra.nombre,
+                  child: LiveMap(
+                    obraLat: obra.lat,
+                    obraLng: obra.lng,
+                    radioMetros: obra.radioMetros,
+                    obraNombre: obra.nombre,
+                    mostrarUsuario: false, // el cliente no marca asistencia
                     height: MediaQuery.of(context).size.height * 0.28,
                   ),
                 ),

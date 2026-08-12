@@ -54,7 +54,7 @@ class _ClienteInformesState extends State<ClienteInformes> {
       const PanelHeader(
           title: 'Informes de avance',
           subtitle: 'Reportes de tu obra',
-          color: AppColors.cliente,
+          color: AppColors.roleCliente,
           icon: Icons.description_outlined),
       Expanded(
         child: RefreshIndicator(

@@ -1,7 +1,7 @@
 name: lozcam_movil
 description: App móvil oficial de Grupo Lozcam — Sistema de Gestión de Obras
 publish_to: 'none'
-version: 1.0.0+1
+version: 2.0.0+2
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
@@ -23,7 +23,7 @@ dependencies:
   http: ^1.2.0
   # Foto de evidencia (cámara/galería). Se guarda local; subirá a Storage al integrar.
   image_picker: ^1.1.0
-  # Tipografía moderna (Poppins) para el rediseño visual
+  # Tipografía de la interfaz (Inter para cuerpo, Lexend para títulos)
   google_fonts: ^6.2.1
   # Efecto skeleton durante cargas de listas
   shimmer: ^3.0.0
@@ -38,6 +38,8 @@ dependencies:
   # Micro-interacciones / animaciones premium (fade, slide, shimmer)
   flutter_animate: ^4.5.0
   pdf: ^3.12.0
+  firebase_core: ^4.13.0
+  firebase_messaging: ^16.5.0
 
 dev_dependencies:
   flutter_test:
@@ -46,3 +48,9 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  # Fuente Unicode empaquetada. La usa el generador de PDF (`dart_pdf` cae a
+  # Helvetica Latin-1 si no se registra una TTF: las tildes y la ñ salen rotas).
+  # Roboto se distribuye bajo Apache-2.0 y viaja dentro del APK, así que los
+  # reportes funcionan también sin señal en obra.
+  assets:
+    - assets/fonts/

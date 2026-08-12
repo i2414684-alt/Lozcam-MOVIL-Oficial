@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
 import '../../theme/colors.dart';
 import '../../theme/app_theme.dart';
+import '../../theme/tokens.dart';
 import '../../widgets/common.dart';
-import '../../core/asistencia_service.dart';
+import '../../data/fuente_datos.dart';
 
-/// Historial de asistencia del trabajador, agrupado por día.
+/// Historial de asistencia del trabajador, día por día, CON las faltas.
+///
+/// Antes esta pantalla se llamaba «inasistencias» pero nunca calculaba una
+/// falta: listaba solo los días con marca, todos con check verde. Ahora
+/// recorre el calendario del período y marca en rojo los días hábiles sin
+/// registro (lunes a sábado; el domingo no cuenta).
+///
 /// En producción lee la tabla `asistencias`; sin nube, la memoria interna.
 class EmpleadoInasistencias extends StatefulWidget {
   const EmpleadoInasistencias({super.key});
@@ -13,7 +20,7 @@ class EmpleadoInasistencias extends StatefulWidget {
 }
 
 class _EmpleadoInasistenciasState extends State<EmpleadoInasistencias> {
-  List<Map<String, dynamic>> _dias = [];
+  List<DiaAsistencia> _dias = const [];
   bool _cargando = true;
 
   @override
@@ -23,7 +30,7 @@ class _EmpleadoInasistenciasState extends State<EmpleadoInasistencias> {
   }
 
   Future<void> _cargar() async {
-    final d = await AsistenciaService.instance.resumen();
+    final d = await historialConFaltas();
     if (!mounted) return;
     setState(() {
       _dias = d;
@@ -40,70 +47,76 @@ class _EmpleadoInasistenciasState extends State<EmpleadoInasistencias> {
     return '${two(l.hour)}:${two(l.minute)}';
   }
 
-  String _fechaCorta(dynamic f) {
-    final p = f.toString().split('-');
-    return p.length == 3 ? '${p[2]}/${p[1]}' : f.toString();
+  String _fechaCorta(String f) {
+    final p = f.split('-');
+    return p.length == 3 ? '${p[2]}/${p[1]}' : f;
   }
 
   @override
   Widget build(BuildContext context) {
-    final entradas = _dias.where((d) => d['hora_entrada'] != null).length;
-    final salidas = _dias.where((d) => d['hora_salida'] != null).length;
+    final asistidos = _dias.where((d) => !d.falta).length;
+    final faltas = _dias.where((d) => d.falta).length;
+    final habiles = _dias.length;
+    // Porcentaje de cumplimiento del período: es la cifra que de verdad le
+    // sirve al trabajador y a gerencia.
+    final pct = habiles == 0 ? 0 : ((asistidos / habiles) * 100).round();
 
     return Column(children: [
       const PanelHeader(
           title: 'Mi asistencia',
-          subtitle: 'Historial de entradas y salidas',
-          color: AppColors.empleado,
+          subtitle: 'Historial y faltas · últimos 30 días',
+          color: AppColors.roleEmpleado,
           icon: Icons.history),
       Expanded(
         child: RefreshIndicator(
           onRefresh: _cargar,
           child: ListView(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(AppSpacing.md),
             physics: const AlwaysScrollableScrollPhysics(),
             children: [
               Row(children: [
                 Expanded(
                   child: StatTile(
-                    label: 'Días',
-                    value: '${_dias.length}',
-                    accentColor: AppColors.empleado,
-                    icon: Icons.calendar_month_outlined,
+                    label: 'Asistidos',
+                    value: '$asistidos',
+                    accentColor: context.tokens.success,
+                    icon: Icons.check_circle_outline,
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: StatTile(
-                    label: 'Entradas',
-                    value: '$entradas',
-                    accentColor: AppColors.success,
-                    icon: Icons.login,
+                    label: 'Faltas',
+                    value: '$faltas',
+                    accentColor: faltas > 0
+                        ? context.tokens.danger
+                        : context.tokens.textSecondary,
+                    icon: Icons.event_busy_outlined,
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: StatTile(
-                    label: 'Salidas',
-                    value: '$salidas',
-                    accentColor: context.tokens.textSecondary,
-                    icon: Icons.logout,
+                    label: 'Cumplimiento',
+                    value: '$pct%',
+                    accentColor: AppColors.roleEmpleado,
+                    icon: Icons.percent,
                   ),
                 ),
               ]),
-              const SizedBox(height: 10),
+              const SizedBox(height: AppSpacing.md),
               if (_cargando)
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 40),
                   child: Center(child: CircularProgressIndicator()),
                 )
               else if (_dias.isEmpty)
-                AppCard(
-                  child: IconRow(
+                const AppCard(
+                  child: EmptyState(
                       icon: Icons.fingerprint,
-                      iconColor: context.tokens.textSecondary,
                       title: 'Aún no has marcado asistencia',
-                      subtitle: 'Tus marcas aparecerán aquí por día.'),
+                      description:
+                          'Tus marcas y tus faltas aparecerán aquí por día.'),
                 )
               else
                 AppCard(
@@ -121,10 +134,18 @@ class _EmpleadoInasistenciasState extends State<EmpleadoInasistencias> {
     ]);
   }
 
-  Widget _filaDia(Map<String, dynamic> d) {
+  Widget _filaDia(DiaAsistencia d) {
     final t = context.tokens;
-    final obra = (d['obra_nombre'] ?? '').toString();
-    final salida = d['hora_salida'];
+    final falta = d.falta;
+    final fondo = falta
+        ? t.dangerSoft
+        : (d.completo ? t.successSoft : t.warningSoft);
+    final tinte =
+        falta ? t.danger : (d.completo ? t.success : t.warning);
+    final icono = falta
+        ? Icons.close_rounded
+        : (d.completo ? Icons.check_rounded : Icons.schedule);
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 7),
       child: Row(children: [
@@ -132,31 +153,36 @@ class _EmpleadoInasistenciasState extends State<EmpleadoInasistencias> {
           width: 34,
           height: 34,
           alignment: Alignment.center,
-          decoration: BoxDecoration(color: t.successSoft, shape: BoxShape.circle),
-          child: Icon(Icons.check_rounded, size: 18, color: t.success),
+          decoration: BoxDecoration(color: fondo, shape: BoxShape.circle),
+          child: Icon(icono, size: 18, color: tinte),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: AppSpacing.sm + 2),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(
-                obra.isEmpty
-                    ? _fechaCorta(d['fecha'])
-                    : '${_fechaCorta(d['fecha'])} · $obra',
+                d.obraNombre.isEmpty
+                    ? _fechaCorta(d.fecha)
+                    : '${_fechaCorta(d.fecha)} · ${d.obraNombre}',
                 style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: t.textPrimary)),
             const SizedBox(height: 1),
             Text(
-                'Entrada ${_hora(d['hora_entrada'])}  ·  Salida ${_hora(salida)}',
+                falta
+                    ? 'Sin marca de asistencia'
+                    : 'Entrada ${_hora(d.horaEntrada)}  ·  Salida ${_hora(d.horaSalida)}',
                 style: TextStyle(fontSize: 11, color: t.textSecondary)),
           ]),
         ),
         Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-          AppBadge(salida != null ? 'Completo' : 'Solo entrada',
-              badgeTone: salida != null ? BadgeTone.success : BadgeTone.warning),
+          AppBadge(
+              falta ? 'Falta' : (d.completo ? 'Completo' : 'Solo entrada'),
+              badgeTone: falta
+                  ? BadgeTone.danger
+                  : (d.completo ? BadgeTone.success : BadgeTone.warning)),
           const SizedBox(height: 4),
-          _gpsChip(t),
+          if (!falta) _gpsChip(t),
         ]),
       ]),
     );
@@ -167,7 +193,7 @@ class _EmpleadoInasistenciasState extends State<EmpleadoInasistencias> {
         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
         decoration: BoxDecoration(
           color: t.brandSoft,
-          borderRadius: BorderRadius.circular(999),
+          borderRadius: BorderRadius.circular(AppRadius.pill),
           border: Border.all(color: t.brand.withValues(alpha: .25), width: 0.8),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -175,7 +201,7 @@ class _EmpleadoInasistenciasState extends State<EmpleadoInasistencias> {
           const SizedBox(width: 3),
           Text('GPS',
               style: TextStyle(
-                  fontSize: 9.5, fontWeight: FontWeight.w700, color: t.brand)),
+                  fontSize: 10, fontWeight: FontWeight.w700, color: t.brand)),
         ]),
       );
 }

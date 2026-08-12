@@ -59,11 +59,20 @@ Future<List<ActividadArea>> cargarActividadAreas({List<int>? soloObras}) async {
   if (soloObras != null) {
     obras = obras.where((o) => soloObras.contains(o.id)).toList();
   }
-  final detalle = await asignacionesDetalle(); // {obra_id, perfil_id}
-  final personal = await todoElPersonal();
-  final marcasHoy = await asistenciasUltimosDias(1); // hoy, con horas
+  // Las cuatro consultas independientes salen en paralelo, no en cadena: en
+  // obra la latencia es alta y encadenarlas multiplicaba la espera.
+  final resultados = await Future.wait([
+    asignacionesDetalle(), // {obra_id, perfil_id}
+    todoElPersonal(),
+    asistenciasUltimosDias(1), // hoy, con horas
+    // UNA consulta para el avance de todas las obras (antes era una por obra).
+    ultimoAvancePorObra(obras.map((o) => o.id).toList()),
+  ]);
+  final detalle = resultados[0] as List<Map<String, dynamic>>;
+  final personal = resultados[1] as List<Persona>;
+  final marcasHoy = resultados[2] as List<Map<String, dynamic>>;
+  final avancePorObra = resultados[3] as Map<int, int>;
   final tareas = todasLasTareas();
-  final avances = await Future.wait(obras.map((o) => avancesDeObra(o.id)));
 
   final hoy = fechaCorta(DateTime.now());
   final nombrePorId = {for (final p in personal) p.id: p.nombre};
@@ -101,8 +110,6 @@ Future<List<ActividadArea>> cargarActividadAreas({List<int>? soloObras}) async {
     final abiertas = deObra.where((t) => t.estado != 'completada').length;
     final enProgreso = deObra.where((t) => t.estado == 'en_progreso').length;
 
-    final av = avances[i];
-
     final puntaje = presentes.length * 3.0 +
         enProgreso * 2.0 +
         (abiertas - enProgreso) * 1.0 +
@@ -116,7 +123,7 @@ Future<List<ActividadArea>> cargarActividadAreas({List<int>? soloObras}) async {
       presentes: presentes,
       tareasAbiertas: abiertas,
       tareasEnProgreso: enProgreso,
-      avancePct: av.isNotEmpty ? av.first.pct : null,
+      avancePct: avancePorObra[o.id],
       ultimaMarca: ultima,
       intensidad: 0, // se rellena abajo, normalizada
     ));

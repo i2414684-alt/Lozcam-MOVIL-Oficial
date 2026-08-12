@@ -26,7 +26,8 @@ class MapaCalorScreen extends StatefulWidget {
   State<MapaCalorScreen> createState() => _MapaCalorScreenState();
 }
 
-class _MapaCalorScreenState extends State<MapaCalorScreen> {
+class _MapaCalorScreenState extends State<MapaCalorScreen>
+    with WidgetsBindingObserver {
   List<ActividadArea> _todas = [];
   int? _obraSel; // null = todas
   bool _cargando = true;
@@ -39,13 +40,34 @@ class _MapaCalorScreenState extends State<MapaCalorScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _cargar();
-    // "Tiempo real" sin tocar la BD en exceso: refresco cada 60 s.
+    _arrancarTimer();
+  }
+
+  /// "Tiempo real" sin castigar la BD ni la batería: refresco cada 60 s.
+  void _arrancarTimer() {
+    _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 60), (_) => _cargar());
+  }
+
+  /// El refresco automático se detiene cuando la app pasa a segundo plano y se
+  /// reanuda (con una recarga inmediata) al volver. Antes seguía consultando la
+  /// base de datos cada minuto con la app cerrada en el bolsillo del gerente.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _cargar();
+      _arrancarTimer();
+    } else {
+      _timer?.cancel();
+      _timer = null;
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _timer?.cancel();
     super.dispose();
   }

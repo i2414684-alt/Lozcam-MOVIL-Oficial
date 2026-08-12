@@ -63,7 +63,7 @@ class _AdminEmpleadosState extends State<AdminEmpleados> {
       const PanelHeader(
           title: 'Equipo y jerarquía',
           subtitle: 'Personal por nivel',
-          color: AppColors.admin,
+          color: AppColors.roleAdmin,
           icon: Icons.account_tree_outlined),
       Expanded(
         child: RefreshIndicator(
@@ -80,7 +80,7 @@ class _AdminEmpleadosState extends State<AdminEmpleados> {
               else ...[
                 AppCard(
                   child: Row(children: [
-                    const Icon(Icons.groups_outlined, color: AppColors.admin),
+                    const Icon(Icons.groups_outlined, color: AppColors.roleAdmin),
                     const SizedBox(width: 10),
                     Text('${lista.length} miembros del equipo',
                         style: TextStyle(

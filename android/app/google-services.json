@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "780860116306",
+    "project_id": "lozcam-movil",
+    "storage_bucket": "lozcam-movil.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:780860116306:android:5288c4d9ef5c5c03927e8b",
+        "android_client_info": {
+          "package_name": "pe.lozcam.lozcam_movil"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBRbBbo_Pxsk-HdCzXZi5S9Gemru-e-Neg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

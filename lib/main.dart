@@ -1,10 +1,14 @@
 import 'dart:async';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'firebase_options.dart';
 import 'theme/colors.dart';
 import 'theme/app_theme.dart';
 import 'theme/theme_controller.dart';
 import 'core/local_store.dart';
+import 'core/push_service.dart';
 import 'core/supabase_client.dart';
 import 'core/auth_service.dart';
 import 'screens/login_screen.dart';
@@ -33,6 +37,25 @@ void main() {
       debugPrint('LocalStore.init falló: $e');
     }
     ThemeController.instance.cargar(); // preferencia de tema guardada
+
+    // Firebase ANTES de runApp: `Firebase.initializeApp()` debe completarse
+    // antes de tocar cualquier API de Firebase, y el manejador de segundo plano
+    // hay que registrarlo aquí (no dentro de un widget) porque Android lo
+    // invoca sin que la UI exista.
+    //
+    // Va en try/catch a propósito: sin Google Play Services o sin red, la
+    // inicialización falla, y una obra sin notificaciones sigue necesitando
+    // marcar asistencia. Las push son un extra, no un requisito de arranque.
+    try {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+      FirebaseMessaging.onBackgroundMessage(manejadorSegundoPlano);
+      await PushService.instance.iniciar();
+    } catch (e) {
+      debugPrint('Firebase no disponible, la app sigue sin push: $e');
+    }
+
     await initSupabase(); // nube (solo si hay credenciales en config.dart)
     runApp(const LozcamApp());
   }, (error, stack) {
@@ -52,7 +75,7 @@ class LozcamApp extends StatelessWidget {
         return MaterialApp(
           title: 'Lozcam',
           debugShowCheckedModeBanner: false,
-          theme: AppTheme.light, // Modo Claro (Poppins incluida)
+          theme: AppTheme.light, // Modo Claro (Inter + Lexend)
           darkTheme: AppTheme.dark, // Modo Oscuro
           themeMode: modo, // claro / oscuro / sistema
           home: const AuthGate(),
@@ -100,7 +123,9 @@ class _Splash extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      // Fondo del tema activo, no blanco fijo: al arrancar en modo oscuro la
+      // app daba un fogonazo blanco antes de pintar la primera pantalla.
+      backgroundColor: context.tokens.appBg,
       body: Center(
         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
           Container(
@@ -108,7 +133,7 @@ class _Splash extends StatelessWidget {
             height: 64,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-                color: AppColors.primary,
+                color: AppColors.brand,
                 borderRadius: BorderRadius.circular(20)),
             child: const Text('L',
                 style: TextStyle(
@@ -121,7 +146,7 @@ class _Splash extends StatelessWidget {
             width: 22,
             height: 22,
             child: CircularProgressIndicator(
-                strokeWidth: 2.2, color: AppColors.primary),
+                strokeWidth: 2.2, color: AppColors.brand),
           ),
         ]),
       ),

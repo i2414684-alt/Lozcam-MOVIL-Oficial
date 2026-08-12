@@ -213,8 +213,8 @@ class _LiveMapState extends State<LiveMap> {
                 point: LatLng(widget.obraLat!, widget.obraLng!),
                 radius: widget.radioMetros.toDouble(),
                 useRadiusInMeter: true,
-                color: AppColors.primary.withValues(alpha:0.12),
-                borderColor: AppColors.primary.withValues(alpha:0.6),
+                color: AppColors.brand.withValues(alpha:0.12),
+                borderColor: AppColors.brand.withValues(alpha:0.6),
                 borderStrokeWidth: 1.5,
               ),
             ]),
@@ -225,7 +225,7 @@ class _LiveMapState extends State<LiveMap> {
                 width: 40,
                 height: 40,
                 child: const Icon(Icons.location_on,
-                    color: AppColors.primary, size: 36),
+                    color: AppColors.brand, size: 36),
               ),
             if (_pos != null)
               Marker(
@@ -244,7 +244,7 @@ class _LiveMapState extends State<LiveMap> {
         child: FloatingActionButton.small(
           heroTag: 'recentrar',
           backgroundColor: Colors.white,
-          foregroundColor: AppColors.primary,
+          foregroundColor: AppColors.brand,
           elevation: 2,
           onPressed: (_pos == null && !_hayObra) ? null : _recentrar,
           child: const Icon(Icons.my_location, size: 20),
@@ -265,7 +265,7 @@ class _LiveMapState extends State<LiveMap> {
   Widget _puntoUsuario() {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.empleado,
+        color: AppColors.roleEmpleado,
         shape: BoxShape.circle,
         border: Border.all(color: Colors.white, width: 3),
         boxShadow: [
@@ -277,8 +277,11 @@ class _LiveMapState extends State<LiveMap> {
 
   Widget _chipDistancia(double dist) {
     final dentro = dist <= widget.radioMetros;
-    final tone = dentro ? AppColors.greenText : AppColors.redText;
-    final bg = dentro ? AppColors.greenBg : AppColors.redBg;
+    // Tokens del tema, no la paleta clara fija: en modo oscuro este chip
+    // quedaba como un parche pastel sobre el mapa.
+    final t = context.tokens;
+    final tone = dentro ? t.success : t.danger;
+    final bg = dentro ? t.successSoft : t.dangerSoft;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(

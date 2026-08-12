@@ -56,7 +56,10 @@ Future<List<Persona>> todoElPersonal() async {
     try {
       final rows = await supabase
           .from('profiles')
-          .select('id, nombre, apellidos, rol')
+          .select('id, nombre, apellidos, rol, activo')
+          // Mismo criterio que `personasPorRol`: sin el filtro `activo`, el KPI
+          // "Empleados" y el organigrama contaban al personal dado de baja.
+          .eq('activo', true)
           .neq('rol', 'cliente');
       return (rows as List).map((r) {
         final m = Map<String, dynamic>.from(r as Map);

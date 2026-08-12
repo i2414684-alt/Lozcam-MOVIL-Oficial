@@ -7,8 +7,7 @@ import '../../widgets/common.dart';
 import '../../widgets/live_map.dart';
 import '../../models/models.dart';
 import '../../data/roles.dart';
-import '../../data/obras_repository.dart';
-import '../../data/asignaciones_repository.dart';
+import '../../data/fuente_datos.dart';
 import '../../core/asistencia_service.dart';
 import '../../core/auth_service.dart';
 
@@ -33,23 +32,25 @@ class _EmpleadoMarcarState extends State<EmpleadoMarcar> {
   @override
   void initState() {
     super.initState();
+    // Solo _cargarObras(): ya carga los recientes internamente. Antes se
+    // llamaba también a _cargarRecientes() aquí y la pantalla hacía doble
+    // consulta en cada apertura de la pestaña.
     _cargarObras();
-    _cargarRecientes();
   }
 
+  /// Obras donde este trabajador puede marcar. Misma fuente que «Inicio» e
+  /// «Informe» ([obrasDelUsuario]), para que las tres pestañas coincidan.
   Future<void> _cargarObras() async {
-    final todas = await cargarObras();
-    final id = AuthService.instance.session?.id ?? '';
-    final asignadas = await obrasAsignadasA(id);
-    // Si el gerente le asignó áreas, solo esas; si no, todas (respaldo).
-    final lista = asignadas.isEmpty
-        ? todas
-        : todas.where((o) => asignadas.contains(o.id)).toList();
+    final lista = await obrasDelUsuario();
     await _cargarRecientes();
     if (!mounted) return;
     setState(() {
       _obras = lista;
-      _obra = lista.isNotEmpty ? lista.first : null;
+      // Conserva la obra elegida tras un pull-to-refresh.
+      final previa = _obra?.id;
+      _obra = lista.isEmpty
+          ? null
+          : lista.firstWhere((o) => o.id == previa, orElse: () => lista.first);
       _cargando = false;
     });
   }
@@ -118,7 +119,7 @@ class _EmpleadoMarcarState extends State<EmpleadoMarcar> {
       const PanelHeader(
           title: 'Marcar asistencia',
           subtitle: 'Validación por geolocalización',
-          color: AppColors.empleado,
+          color: AppColors.roleEmpleado,
           icon: Icons.fingerprint),
       Expanded(
         child: !puedeMarcar
